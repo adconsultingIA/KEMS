@@ -56,3 +56,7 @@ class LeadResponse(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+    
+
+class LeadQualify(BaseModel):
+    qualification_notes: str | None = None
