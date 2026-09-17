@@ -1,7 +1,17 @@
 from fastapi import FastAPI
 
 from app.core.database import Base, engine
-from app.models import Contact, Lead, Organization, Opportunity,Profile
+from app.models import (
+    Contact,
+    Lead,
+    Opportunity,
+    Organization,
+    OrganizationalUnit,
+    Profile,
+    Role,
+    Team,
+    UserMembership,
+)
 from app.api.leads import router as leads_router
 from app.api.opportunities import router as opportunities_router
 
