@@ -82,3 +82,32 @@ class UserMembershipResponse(BaseModel):
     is_primary: bool
     is_active: bool
     created_at: datetime
+
+
+class CoreOverviewOrganization(BaseModel):
+    id: str
+    name: str
+    code: str
+
+
+class CoreOverviewMember(BaseModel):
+    id: str
+    full_name: str
+    email: str
+    role_code: str
+    role_name: str
+    is_primary: bool
+
+
+class CoreOverviewUnit(BaseModel):
+    id: str
+    name: str
+    code: str
+    unit_type: str
+    description: str | None
+    members: list[CoreOverviewMember]
+
+
+class CoreOverviewResponse(BaseModel):
+    organization: CoreOverviewOrganization
+    units: list[CoreOverviewUnit]

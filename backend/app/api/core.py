@@ -9,6 +9,10 @@ from app.models.role import Role
 from app.models.team import Team
 from app.models.user_membership import UserMembership
 from app.schemas.core import (
+    CoreOverviewMember,
+    CoreOverviewOrganization,
+    CoreOverviewResponse,
+    CoreOverviewUnit,
     OrganizationalUnitCreate,
     OrganizationalUnitResponse,
     RoleCreate,
@@ -24,6 +28,146 @@ router = APIRouter(
     prefix="/api/v1/core",
     tags=["KEMS Core"],
 )
+
+
+@router.get(
+    "/overview",
+    response_model=CoreOverviewResponse,
+)
+def get_core_overview(
+    db: Session = Depends(get_db),
+):
+    root = db.scalar(
+        select(OrganizationalUnit).where(
+            OrganizationalUnit.code == "KEMS",
+            OrganizationalUnit.is_active.is_(True),
+        )
+    )
+
+    if not root:
+        raise HTTPException(
+            status_code=404,
+            detail="Organisation racine KEMS introuvable.",
+        )
+
+    units = db.scalars(
+        select(OrganizationalUnit)
+        .where(
+            OrganizationalUnit.parent_id == root.id,
+            OrganizationalUnit.is_active.is_(True),
+        )
+        .order_by(
+            OrganizationalUnit.name.asc()
+        )
+    ).all()
+
+    active_memberships = db.scalars(
+        select(UserMembership).where(
+            UserMembership.is_active.is_(True)
+        )
+    ).all()
+
+    profile_ids = {
+        membership.user_id
+        for membership in active_memberships
+    }
+
+    role_ids = {
+        membership.role_id
+        for membership in active_memberships
+    }
+
+    profiles = {}
+
+    if profile_ids:
+        profile_rows = db.scalars(
+            select(Profile).where(
+                Profile.id.in_(profile_ids),
+                Profile.is_active.is_(True),
+            )
+        ).all()
+
+        profiles = {
+            profile.id: profile
+            for profile in profile_rows
+        }
+
+    roles = {}
+
+    if role_ids:
+        role_rows = db.scalars(
+            select(Role).where(
+                Role.id.in_(role_ids)
+            )
+        ).all()
+
+        roles = {
+            role.id: role
+            for role in role_rows
+        }
+
+    memberships_by_unit: dict[str, list[UserMembership]] = {}
+
+    for membership in active_memberships:
+        memberships_by_unit.setdefault(
+            membership.unit_id,
+            [],
+        ).append(membership)
+
+    overview_units = []
+
+    for unit in units:
+        members = []
+
+        for membership in memberships_by_unit.get(
+            unit.id,
+            [],
+        ):
+            profile = profiles.get(
+                membership.user_id
+            )
+
+            role = roles.get(
+                membership.role_id
+            )
+
+            if not profile or not role:
+                continue
+
+            members.append(
+                CoreOverviewMember(
+                    id=profile.id,
+                    full_name=profile.full_name,
+                    email=profile.email,
+                    role_code=role.code,
+                    role_name=role.name,
+                    is_primary=membership.is_primary,
+                )
+            )
+
+        members.sort(
+            key=lambda member: member.full_name.lower()
+        )
+
+        overview_units.append(
+            CoreOverviewUnit(
+                id=unit.id,
+                name=unit.name,
+                code=unit.code,
+                unit_type=unit.unit_type,
+                description=unit.description,
+                members=members,
+            )
+        )
+
+    return CoreOverviewResponse(
+        organization=CoreOverviewOrganization(
+            id=root.id,
+            name=root.name,
+            code=root.code,
+        ),
+        units=overview_units,
+    )
 
 
 @router.post(
