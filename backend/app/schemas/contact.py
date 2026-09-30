@@ -54,6 +54,7 @@ class ContactResponse(BaseModel):
 
     id: str
     organization_id: str | None
+    merged_into_contact_id: str | None
 
     first_name: str
     last_name: str

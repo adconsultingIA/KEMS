@@ -23,6 +23,13 @@ class Contact(Base):
         index=True,
     )
 
+    merged_into_contact_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("contacts.id"),
+        nullable=True,
+        index=True,
+    )
+
     first_name: Mapped[str] = mapped_column(
         String,
         nullable=False,
