@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -47,6 +47,7 @@ class Contact(Base):
     phone: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
+        index=True,
     )
 
     linkedin_url: Mapped[str | None] = mapped_column(
@@ -58,6 +59,25 @@ class Contact(Base):
         String,
         nullable=False,
         default="unknown",
+    )
+
+    source_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="manual",
+        index=True,
+    )
+
+    source_reference: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    verification_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="unverified",
+        index=True,
     )
 
     is_primary: Mapped[bool] = mapped_column(
@@ -72,6 +92,28 @@ class Contact(Base):
         default=False,
     )
 
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        index=True,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    collected_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    last_verified_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     created_at = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -82,4 +124,3 @@ class Contact(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    
