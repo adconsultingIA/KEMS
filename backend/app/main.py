@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.core.database import Base, engine
 from app.models import (
     Contact,
+    ContactOrganization,
     Lead,
     Opportunity,
     Organization,
@@ -11,6 +12,9 @@ from app.models import (
     Role,
     Team,
     UserMembership,
+)
+from app.api.contact_organizations import (
+    router as contact_organizations_router,
 )
 from app.api.contacts import router as contacts_router
 from app.api.core import router as core_router
@@ -31,6 +35,7 @@ app = FastAPI(
 app.include_router(core_router)
 app.include_router(contacts_router)
 app.include_router(organizations_router)
+app.include_router(contact_organizations_router)
 app.include_router(leads_router)
 app.include_router(opportunities_router)
 
