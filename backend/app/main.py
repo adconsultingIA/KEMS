@@ -16,6 +16,7 @@ from app.api.contacts import router as contacts_router
 from app.api.core import router as core_router
 from app.api.leads import router as leads_router
 from app.api.opportunities import router as opportunities_router
+from app.api.organizations import router as organizations_router
 
 
 Base.metadata.create_all(bind=engine)
@@ -29,6 +30,7 @@ app = FastAPI(
 
 app.include_router(core_router)
 app.include_router(contacts_router)
+app.include_router(organizations_router)
 app.include_router(leads_router)
 app.include_router(opportunities_router)
 
