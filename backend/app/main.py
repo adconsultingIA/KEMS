@@ -17,6 +17,7 @@ from app.api.contact_organizations import (
     router as contact_organizations_router,
 )
 from app.api.contacts import router as contacts_router
+from app.api.deduplication import router as deduplication_router
 from app.api.core import router as core_router
 from app.api.leads import router as leads_router
 from app.api.opportunities import router as opportunities_router
@@ -34,6 +35,7 @@ app = FastAPI(
 
 app.include_router(core_router)
 app.include_router(contacts_router)
+app.include_router(deduplication_router)
 app.include_router(organizations_router)
 app.include_router(contact_organizations_router)
 app.include_router(leads_router)

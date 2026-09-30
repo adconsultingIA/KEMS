@@ -12,6 +12,9 @@ from app.schemas.organization import (
     OrganizationUpdate,
 )
 from app.services.contact_normalization import normalize_text
+from app.services.identity_normalization import (
+    build_organization_name_key,
+)
 from app.services.organization_normalization import (
     normalize_organization_payload,
 )
@@ -125,6 +128,9 @@ def create_organization(
 
     organization = Organization(
         name=normalized["name"],
+        normalized_name=build_organization_name_key(
+            normalized["name"]
+        ),
         legal_name=normalized["legal_name"],
         organization_type=normalize_text(
             payload.organization_type
@@ -323,6 +329,12 @@ def update_organization(
 
         for key, value in normalized.items():
             data[key] = value
+
+        data["normalized_name"] = (
+            build_organization_name_key(
+                normalized["name"]
+            )
+        )
 
     for field in (
         "organization_type",

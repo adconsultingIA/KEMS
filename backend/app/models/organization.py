@@ -22,6 +22,12 @@ class Organization(Base):
         index=True,
     )
 
+    normalized_name: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
     legal_name: Mapped[str | None] = mapped_column(
         String,
         nullable=True,

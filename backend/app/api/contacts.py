@@ -12,6 +12,9 @@ from app.schemas.contact import (
     ContactResponse,
     ContactUpdate,
 )
+from app.services.identity_normalization import (
+    build_contact_name_key,
+)
 from app.services.contact_normalization import (
     normalize_email,
     normalize_phone,
@@ -145,6 +148,10 @@ def create_contact(
         ),
         last_name=normalize_text(
             payload.last_name
+        ),
+        normalized_name=build_contact_name_key(
+            normalize_text(payload.first_name),
+            normalize_text(payload.last_name),
         ),
         job_title=normalize_text(
             payload.job_title
@@ -297,6 +304,23 @@ def update_contact(
             data[field] = normalize_text(
                 data[field]
             )
+
+    if (
+        "first_name" in data
+        or "last_name" in data
+    ):
+        data["normalized_name"] = (
+            build_contact_name_key(
+                data.get(
+                    "first_name",
+                    contact.first_name,
+                ),
+                data.get(
+                    "last_name",
+                    contact.last_name,
+                ),
+            )
+        )
 
     email = data.get(
         "email",
