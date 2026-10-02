@@ -3,14 +3,14 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from fastapi.security import (
-    HTTPAuthorizationCredentials,
-    HTTPBearer,
-)
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies.auth import (
+    get_current_auth_context,
+    require_bearer_token,
+)
 from app.models.auth_account import AuthAccount
 from app.schemas.auth import (
     AuthContextResponse,
@@ -32,28 +32,6 @@ router = APIRouter(
     tags=["Authentication"],
 )
 
-bearer_scheme = HTTPBearer(
-    auto_error=False
-)
-
-
-def require_bearer_token(
-    credentials: (
-        HTTPAuthorizationCredentials
-        | None
-    ) = Depends(bearer_scheme),
-) -> str:
-    if (
-        not credentials
-        or credentials.scheme.lower()
-        != "bearer"
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Authentification requise.",
-        )
-
-    return credentials.credentials
 
 
 @router.post(
@@ -119,20 +97,11 @@ def login(
     response_model=AuthContextResponse,
 )
 def me(
-    raw_token: str = Depends(
-        require_bearer_token
+    context: AuthContextResponse = Depends(
+        get_current_auth_context
     ),
-    db: Session = Depends(get_db),
 ):
-    _, account = get_session_account(
-        db,
-        raw_token,
-    )
-
-    return build_auth_context(
-        db,
-        account,
-    )
+    return context
 
 
 @router.post(

@@ -10,15 +10,29 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies.auth import (
+    get_current_auth_context,
+)
 from app.models.action import Action
 from app.models.contact import Contact
 from app.models.organization import Organization
-from app.models.organizational_unit import OrganizationalUnit
+from app.models.organizational_unit import (
+    OrganizationalUnit,
+)
 from app.models.profile import Profile
+from app.models.user_membership import (
+    UserMembership,
+)
 from app.schemas.action import (
     ActionCreate,
     ActionResponse,
     ActionUpdate,
+)
+from app.schemas.auth import (
+    AuthContextResponse,
+)
+from app.services.auth_service import (
+    projection_from_unit,
 )
 
 
@@ -33,6 +47,31 @@ def utcnow():
         UTC
     ).replace(
         tzinfo=None
+    )
+
+
+def require_internal_context(
+    auth: AuthContextResponse,
+):
+    if (
+        auth.account_type != "internal"
+        or not auth.profile
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Accès réservé aux "
+                "collaborateurs KEMS."
+            ),
+        )
+
+
+def is_direction(
+    auth: AuthContextResponse,
+) -> bool:
+    return (
+        auth.account_type == "internal"
+        and auth.projection == "direction"
     )
 
 
@@ -52,6 +91,48 @@ def get_action_or_404(
         )
 
     return action
+
+
+def ensure_action_visible(
+    action: Action,
+    auth: AuthContextResponse,
+):
+    if is_direction(auth):
+        return
+
+    if (
+        action.context
+        != auth.projection
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail="Action introuvable.",
+        )
+
+
+def resolve_context_filter(
+    auth: AuthContextResponse,
+    requested_context: str | None,
+) -> str | None:
+    require_internal_context(auth)
+
+    if is_direction(auth):
+        return requested_context
+
+    if (
+        requested_context
+        and requested_context
+        != auth.projection
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Ce contexte métier "
+                "n'est pas autorisé."
+            ),
+        )
+
+    return auth.projection
 
 
 def ensure_reference_exists(
@@ -82,7 +163,6 @@ def validate_references(
     unit_id: str | None = None,
     contact_id: str | None = None,
     organization_id: str | None = None,
-    created_by_profile_id: str | None = None,
 ):
     ensure_reference_exists(
         db,
@@ -112,12 +192,87 @@ def validate_references(
         "Organisation",
     )
 
-    ensure_reference_exists(
-        db,
-        Profile,
-        created_by_profile_id,
-        "Créateur",
-    )
+
+def profile_has_context(
+    db: Session,
+    profile_id: str,
+    context: str,
+) -> bool:
+    memberships = db.scalars(
+        select(UserMembership).where(
+            UserMembership.user_id
+            == profile_id,
+            UserMembership.is_active
+            .is_(True),
+        )
+    ).all()
+
+    for membership in memberships:
+        unit = db.get(
+            OrganizationalUnit,
+            membership.unit_id,
+        )
+
+        if (
+            unit
+            and unit.is_active
+            and projection_from_unit(
+                unit
+            )
+            == context
+        ):
+            return True
+
+    return False
+
+
+def validate_assignment_scope(
+    db: Session,
+    auth: AuthContextResponse,
+    *,
+    context: str,
+    owner_profile_id: str | None,
+    unit_id: str | None,
+):
+    if is_direction(auth):
+        return
+
+    if owner_profile_id:
+        if not profile_has_context(
+            db,
+            owner_profile_id,
+            context,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "Le collaborateur assigné "
+                    "n'appartient pas à ce "
+                    "contexte métier."
+                ),
+            )
+
+    if unit_id:
+        unit = db.get(
+            OrganizationalUnit,
+            unit_id,
+        )
+
+        if (
+            unit
+            and projection_from_unit(
+                unit
+            )
+            != context
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "L'unité sélectionnée "
+                    "n'appartient pas à ce "
+                    "contexte métier."
+                ),
+            )
 
 
 @router.post(
@@ -127,8 +282,20 @@ def validate_references(
 )
 def create_action(
     payload: ActionCreate,
+    auth: AuthContextResponse = Depends(
+        get_current_auth_context
+    ),
     db: Session = Depends(get_db),
 ):
+    require_internal_context(auth)
+
+    target_context = resolve_context_filter(
+        auth,
+        payload.context,
+    )
+
+    assert target_context is not None
+
     validate_references(
         db,
         owner_profile_id=(
@@ -139,9 +306,16 @@ def create_action(
         organization_id=(
             payload.organization_id
         ),
-        created_by_profile_id=(
-            payload.created_by_profile_id
+    )
+
+    validate_assignment_scope(
+        db,
+        auth,
+        context=target_context,
+        owner_profile_id=(
+            payload.owner_profile_id
         ),
+        unit_id=payload.unit_id,
     )
 
     title = payload.title.strip()
@@ -164,7 +338,7 @@ def create_action(
         ),
         status=payload.status,
         priority=payload.priority,
-        context=payload.context,
+        context=target_context,
         owner_profile_id=(
             payload.owner_profile_id
         ),
@@ -184,7 +358,7 @@ def create_action(
             payload.source_entity_id
         ),
         created_by_profile_id=(
-            payload.created_by_profile_id
+            auth.profile.id
         ),
         due_at=payload.due_at,
         completed_at=(
@@ -230,14 +404,33 @@ def list_actions(
     source_type: str | None = Query(
         default=None
     ),
+    mine: bool = Query(
+        default=False
+    ),
     search: str | None = Query(
         default=None
     ),
+    auth: AuthContextResponse = Depends(
+        get_current_auth_context
+    ),
     db: Session = Depends(get_db),
 ):
+    scoped_context = (
+        resolve_context_filter(
+            auth,
+            context,
+        )
+    )
+
     statement = select(
         Action
     )
+
+    if scoped_context:
+        statement = statement.where(
+            Action.context
+            == scoped_context
+        )
 
     if status:
         statement = statement.where(
@@ -249,12 +442,13 @@ def list_actions(
             Action.priority == priority
         )
 
-    if context:
+    if mine:
         statement = statement.where(
-            Action.context == context
+            Action.owner_profile_id
+            == auth.profile.id
         )
 
-    if owner_profile_id:
+    elif owner_profile_id:
         statement = statement.where(
             Action.owner_profile_id
             == owner_profile_id
@@ -315,12 +509,24 @@ def list_actions(
 )
 def get_action(
     action_id: str,
+    auth: AuthContextResponse = Depends(
+        get_current_auth_context
+    ),
     db: Session = Depends(get_db),
 ):
-    return get_action_or_404(
+    require_internal_context(auth)
+
+    action = get_action_or_404(
         db,
         action_id,
     )
+
+    ensure_action_visible(
+        action,
+        auth,
+    )
+
+    return action
 
 
 @router.patch(
@@ -330,16 +536,44 @@ def get_action(
 def update_action(
     action_id: str,
     payload: ActionUpdate,
+    auth: AuthContextResponse = Depends(
+        get_current_auth_context
+    ),
     db: Session = Depends(get_db),
 ):
+    require_internal_context(auth)
+
     action = get_action_or_404(
         db,
         action_id,
     )
 
+    ensure_action_visible(
+        action,
+        auth,
+    )
+
     data = payload.model_dump(
         exclude_unset=True
     )
+
+    target_context = data.get(
+        "context",
+        action.context,
+    )
+
+    if not is_direction(auth):
+        if (
+            target_context
+            != auth.projection
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "Ce contexte métier "
+                    "n'est pas autorisé."
+                ),
+            )
 
     validate_references(
         db,
@@ -354,6 +588,20 @@ def update_action(
         ),
         organization_id=data.get(
             "organization_id"
+        ),
+    )
+
+    validate_assignment_scope(
+        db,
+        auth,
+        context=target_context,
+        owner_profile_id=data.get(
+            "owner_profile_id",
+            action.owner_profile_id,
+        ),
+        unit_id=data.get(
+            "unit_id",
+            action.unit_id,
         ),
     )
 

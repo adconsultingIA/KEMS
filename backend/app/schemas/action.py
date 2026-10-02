@@ -49,8 +49,6 @@ class ActionCreate(BaseModel):
     source_entity_type: str | None = None
     source_entity_id: str | None = None
 
-    created_by_profile_id: str | None = None
-
     due_at: datetime | None = None
 
 

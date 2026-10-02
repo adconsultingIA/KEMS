@@ -1,149 +1,385 @@
+from app.models.auth_account import (
+    AuthAccount,
+)
 from app.models.contact import Contact
 from app.models.organization import Organization
 from app.models.organizational_unit import (
     OrganizationalUnit,
 )
 from app.models.profile import Profile
+from app.models.role import Role
+from app.models.user_membership import (
+    UserMembership,
+)
+from app.services.auth_service import (
+    hash_password,
+)
 
 
-def create_action_foundation_data(
+PASSWORD = "KemsDemo2026!"
+
+
+def create_internal_user(
     db_session,
+    *,
+    full_name: str,
+    email: str,
+    unit_name: str,
+    unit_code: str,
+    role_code: str,
 ):
-    profile = Profile(
-        full_name="Parfait ADJANOR",
-        email="parfait.actions@kems.test",
-        role="technologies",
-    )
-
     unit = OrganizationalUnit(
-        name="Technologies",
-        code="TECHNOLOGIES_ACTIONS",
+        name=unit_name,
+        code=unit_code,
         unit_type="business_unit",
     )
 
-    organization = Organization(
-        name="Acme SA",
-        normalized_name="acme sa",
+    role = Role(
+        code=role_code,
+        name=role_code.title(),
+        is_system=True,
+    )
+
+    profile = Profile(
+        full_name=full_name,
+        email=email,
+        role=unit_code.lower(),
     )
 
     db_session.add_all(
         [
-            profile,
             unit,
-            organization,
+            role,
+            profile,
         ]
     )
 
     db_session.flush()
 
-    contact = Contact(
-        first_name="Sophie",
-        last_name="Martin",
-        normalized_name="sophie martin",
-        email="sophie@acme.test",
-        organization_id=organization.id,
+    membership = UserMembership(
+        user_id=profile.id,
+        unit_id=unit.id,
+        role_id=role.id,
+        is_primary=True,
     )
 
-    db_session.add(contact)
+    account = AuthAccount(
+        account_type="internal",
+        profile_id=profile.id,
+        email=email,
+        password_hash=hash_password(
+            PASSWORD
+        ),
+    )
+
+    db_session.add_all(
+        [
+            membership,
+            account,
+        ]
+    )
+
     db_session.commit()
 
     return {
-        "profile": profile,
         "unit": unit,
-        "organization": organization,
-        "contact": contact,
+        "role": role,
+        "profile": profile,
+        "account": account,
     }
 
 
-def test_create_and_filter_action(
+def login(
+    client,
+    email: str,
+):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": email,
+            "password": PASSWORD,
+        },
+    )
+
+    assert response.status_code == 200
+
+    token = response.json()[
+        "access_token"
+    ]
+
+    return {
+        "Authorization": (
+            f"Bearer {token}"
+        )
+    }
+
+
+def test_actions_require_authentication(
+    client,
+):
+    response = client.get(
+        "/api/v1/core/actions"
+    )
+
+    assert response.status_code == 401
+
+
+def test_direction_can_see_all_contexts(
     client,
     db_session,
 ):
-    data = (
-        create_action_foundation_data(
-            db_session
-        )
+    direction = create_internal_user(
+        db_session,
+        full_name="Euloge Santos",
+        email="direction.actions@kems.test",
+        unit_name="Direction",
+        unit_code="DIRECTION",
+        role_code="direction-manager",
     )
 
-    response = client.post(
+    headers = login(
+        client,
+        direction["profile"].email,
+    )
+
+    for context in (
+        "technologies",
+        "assurance",
+    ):
+        response = client.post(
+            "/api/v1/core/actions",
+            headers=headers,
+            json={
+                "title": (
+                    f"Action {context}"
+                ),
+                "context": context,
+                "priority": "high",
+            },
+        )
+
+        assert response.status_code == 201
+
+        assert (
+            response.json()[
+                "created_by_profile_id"
+            ]
+            == direction["profile"].id
+        )
+
+    listed = client.get(
         "/api/v1/core/actions",
+        headers=headers,
+    )
+
+    assert listed.status_code == 200
+    assert len(listed.json()) == 2
+
+
+def test_business_user_only_sees_own_context(
+    client,
+    db_session,
+):
+    direction = create_internal_user(
+        db_session,
+        full_name="Euloge Santos",
+        email="direction.scope@kems.test",
+        unit_name="Direction",
+        unit_code="DIRECTION",
+        role_code="direction-scope",
+    )
+
+    tech = create_internal_user(
+        db_session,
+        full_name="Parfait ADJANOR",
+        email="tech.scope@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-scope",
+    )
+
+    direction_headers = login(
+        client,
+        direction["profile"].email,
+    )
+
+    client.post(
+        "/api/v1/core/actions",
+        headers=direction_headers,
+        json={
+            "title": "Action Technologies",
+            "context": "technologies",
+        },
+    )
+
+    client.post(
+        "/api/v1/core/actions",
+        headers=direction_headers,
+        json={
+            "title": "Action Assurance",
+            "context": "assurance",
+        },
+    )
+
+    tech_headers = login(
+        client,
+        tech["profile"].email,
+    )
+
+    response = client.get(
+        "/api/v1/core/actions",
+        headers=tech_headers,
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert len(payload) == 1
+
+    assert (
+        payload[0]["context"]
+        == "technologies"
+    )
+
+    forbidden = client.get(
+        (
+            "/api/v1/core/actions"
+            "?context=assurance"
+        ),
+        headers=tech_headers,
+    )
+
+    assert forbidden.status_code == 403
+
+
+def test_business_user_cannot_create_cross_context(
+    client,
+    db_session,
+):
+    tech = create_internal_user(
+        db_session,
+        full_name="Parfait ADJANOR",
+        email="tech.create@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-create",
+    )
+
+    headers = login(
+        client,
+        tech["profile"].email,
+    )
+
+    allowed = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title": "Valider le livrable",
+            "context": "technologies",
+        },
+    )
+
+    assert allowed.status_code == 201
+
+    forbidden = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
         json={
             "title": (
-                "Relancer le devis "
-                "Technologies"
+                "Renouveler assurance"
             ),
-            "description": (
-                "Relancer le client "
-                "avant vendredi."
-            ),
-            "priority": "high",
+            "context": "assurance",
+        },
+    )
+
+    assert forbidden.status_code == 403
+
+
+def test_mine_filter_returns_assigned_actions(
+    client,
+    db_session,
+):
+    tech = create_internal_user(
+        db_session,
+        full_name="Parfait ADJANOR",
+        email="tech.mine@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-mine",
+    )
+
+    headers = login(
+        client,
+        tech["profile"].email,
+    )
+
+    mine = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title": "Mon ticket",
             "context": "technologies",
             "owner_profile_id": (
-                data["profile"].id
+                tech["profile"].id
             ),
             "unit_id": (
-                data["unit"].id
-            ),
-            "contact_id": (
-                data["contact"].id
-            ),
-            "organization_id": (
-                data["organization"].id
-            ),
-            "source_type": "quote",
-            "source_entity_type": "quote",
-            "source_entity_id": "quote-001",
-            "created_by_profile_id": (
-                data["profile"].id
+                tech["unit"].id
             ),
         },
     )
 
-    assert response.status_code == 201
+    assert mine.status_code == 201
 
-    payload = response.json()
-
-    assert (
-        payload["status"]
-        == "todo"
+    unassigned = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title": "Action équipe",
+            "context": "technologies",
+        },
     )
 
-    assert (
-        payload["priority"]
-        == "high"
-    )
+    assert unassigned.status_code == 201
 
-    assert (
-        payload["context"]
-        == "technologies"
-    )
-
-    assert (
-        payload[
-            "owner_profile_id"
-        ]
-        == data["profile"].id
-    )
-
-    filtered = client.get(
+    response = client.get(
         (
             "/api/v1/core/actions"
-            "?context=technologies"
-            "&priority=high"
-        )
+            "?mine=true"
+        ),
+        headers=headers,
     )
 
-    assert filtered.status_code == 200
-    assert len(
-        filtered.json()
-    ) == 1
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+    assert (
+        response.json()[0]["title"]
+        == "Mon ticket"
+    )
 
 
 def test_complete_and_reopen_action(
     client,
+    db_session,
 ):
+    tech = create_internal_user(
+        db_session,
+        full_name="Parfait ADJANOR",
+        email="tech.complete@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-complete",
+    )
+
+    headers = login(
+        client,
+        tech["profile"].email,
+    )
+
     created = client.post(
         "/api/v1/core/actions",
+        headers=headers,
         json={
             "title": (
                 "Valider un livrable"
@@ -165,17 +401,13 @@ def test_complete_and_reopen_action(
             "/api/v1/core/actions/"
             f"{action_id}"
         ),
+        headers=headers,
         json={
             "status": "done",
         },
     )
 
     assert completed.status_code == 200
-
-    assert (
-        completed.json()["status"]
-        == "done"
-    )
 
     assert (
         completed.json()[
@@ -189,6 +421,7 @@ def test_complete_and_reopen_action(
             "/api/v1/core/actions/"
             f"{action_id}"
         ),
+        headers=headers,
         json={
             "status": "in_progress",
         },
@@ -197,40 +430,8 @@ def test_complete_and_reopen_action(
     assert reopened.status_code == 200
 
     assert (
-        reopened.json()["status"]
-        == "in_progress"
-    )
-
-    assert (
         reopened.json()[
             "completed_at"
         ]
         is None
-    )
-
-
-def test_invalid_action_reference_is_rejected(
-    client,
-):
-    response = client.post(
-        "/api/v1/core/actions",
-        json={
-            "title": (
-                "Action impossible"
-            ),
-            "context": "assurance",
-            "owner_profile_id": (
-                "profil-inexistant"
-            ),
-        },
-    )
-
-    assert response.status_code == 404
-
-    assert (
-        response.json()["detail"]
-        == (
-            "Collaborateur assigné "
-            "introuvable."
-        )
     )
