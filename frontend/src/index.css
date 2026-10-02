@@ -5240,3 +5240,565 @@ h3 {
 .timeline-detail {
   overflow-wrap: anywhere;
 }
+
+/* =========================================================
+   C05.4 — ENRICHED CLIENT 720 TIMELINE
+   ========================================================= */
+
+.timeline-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline-heading-row h2 {
+  margin: 0;
+}
+
+.timeline-count {
+  min-width: 22px;
+  height: 22px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.timeline-dot {
+  display: grid;
+  place-items: center;
+
+  width: 18px;
+  height: 18px;
+
+  left: -3px;
+  top: 1px;
+
+  color:
+    var(
+      --timeline-context-color,
+      var(--purple)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(
+        --timeline-context-color,
+        var(--purple)
+      )
+      13%,
+      white
+    );
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(
+        --timeline-context-color,
+        var(--purple)
+      )
+      24%,
+      white
+    );
+
+  box-shadow: none;
+}
+
+.timeline-item::before {
+  left: 5px;
+  top: 20px;
+}
+
+.timeline-item {
+  padding-left: 28px;
+}
+
+.timeline-date {
+  margin-bottom: 5px;
+
+  color: #9296a3;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.timeline-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  margin-top: 6px;
+}
+
+.timeline-context-chip,
+.timeline-actor {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 20px;
+
+  border-radius: 999px;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.timeline-context-chip {
+  padding: 0 7px;
+}
+
+.timeline-actor {
+  gap: 4px;
+
+  padding: 0 6px;
+
+  color: var(--muted);
+
+  background: #f7f7f9;
+}
+
+.timeline-context-chip-assurance {
+  background: #fff4df;
+  color: #b66f08;
+}
+
+.timeline-context-chip-technologies {
+  background: #eeeaff;
+  color: #6241ea;
+}
+
+.timeline-context-chip-investissement {
+  background: #eaf0ff;
+  color: #3564d8;
+}
+
+.timeline-context-chip-fiduciaire {
+  background: #f8efe3;
+  color: #85551a;
+}
+
+.timeline-context-chip-commercial {
+  background: #f2edff;
+  color: #7450d8;
+}
+
+.timeline-context-chip-direction {
+  background: #eef0f3;
+  color: #30343c;
+}
+
+.timeline-context-chip-core {
+  background: #eef2f6;
+  color: #526070;
+}
+
+.timeline-context-chip-client {
+  background: #e9f8f2;
+  color: #128561;
+}
+
+.timeline-more-button {
+  width: 100%;
+
+  margin-top: 8px;
+
+  padding: 10px 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--surface-soft);
+
+  color: #555866;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.timeline-more-button:hover {
+  background: #f2efff;
+  color: var(--purple);
+
+  border-color:
+    rgba(108,76,255,.18);
+}
+
+/* =========================================================
+   C05.5 — CLIENT 720 COMPLETE HISTORY
+   ========================================================= */
+
+.client720-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.client720-overview.is-hidden {
+  display: none;
+}
+
+.client-history-panel {
+  padding: 24px;
+}
+
+.client-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+
+  padding-bottom: 20px;
+
+  border-bottom:
+    1px solid var(--border);
+}
+
+.client-history-header h2 {
+  margin:
+    0 0 6px;
+
+  font-size: 22px;
+}
+
+.client-history-header p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.client-history-summary {
+  min-width: 124px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding:
+    11px 13px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--surface-soft);
+
+  color:
+    var(--purple);
+}
+
+.client-history-summary div {
+  display: flex;
+  flex-direction: column;
+}
+
+.client-history-summary strong {
+  color: #20222a;
+
+  font-size: 17px;
+  line-height: 1;
+}
+
+.client-history-summary span {
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.client-history-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+
+  margin-top: 20px;
+
+  padding:
+    15px 16px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    13px;
+
+  background:
+    var(--surface-soft);
+}
+
+.client-history-toolbar-title {
+  align-self: center;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-right: 2px;
+
+  color:
+    #555966;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.client-history-filter {
+  min-width: 190px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.client-history-filter > span {
+  color:
+    var(--muted);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.client-history-filter select {
+  min-height: 38px;
+
+  padding:
+    0 34px
+    0 10px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    9px;
+
+  background:
+    white;
+
+  color:
+    #30323a;
+
+  font:
+    inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.client-history-filter select:focus {
+  outline:
+    2px solid
+    rgba(
+      108,
+      76,
+      255,
+      .12
+    );
+
+  border-color:
+    rgba(
+      108,
+      76,
+      255,
+      .30
+    );
+}
+
+.client-history-reset {
+  min-height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding:
+    0 11px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    9px;
+
+  background:
+    white;
+
+  color:
+    #555966;
+
+  font:
+    inherit;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.client-history-reset:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.client-history-results {
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color:
+    #444854;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.client-history-results small {
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.client-history-timeline {
+  max-width:
+    820px;
+
+  padding:
+    10px 4px
+    6px;
+}
+
+.client-history-timeline .timeline-item {
+  padding-bottom:
+    24px;
+}
+
+.client-history-timeline .timeline-item strong {
+  font-size:
+    13px;
+}
+
+.client-history-timeline .timeline-item p {
+  font-size:
+    11px;
+}
+
+.client-history-tech-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  margin-top: 7px;
+
+  color:
+    #9296a3;
+
+  font-size: 8px;
+}
+
+.client-history-tech-meta span {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.client-history-tech-meta strong {
+  padding:
+    2px 5px;
+
+  border-radius:
+    5px;
+
+  background:
+    #f5f5f7;
+
+  color:
+    #777b87;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size:
+    8px;
+
+  font-weight: 600;
+}
+
+.client-history-state {
+  min-height:
+    220px;
+
+  border:
+    1px dashed var(--border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--surface-soft);
+}
+
+@media (
+  max-width: 760px
+) {
+  .client-history-header {
+    flex-direction:
+      column;
+  }
+
+  .client-history-summary {
+    width: 100%;
+  }
+
+  .client-history-toolbar {
+    align-items:
+      stretch;
+  }
+
+  .client-history-toolbar-title,
+  .client-history-filter,
+  .client-history-reset {
+    width: 100%;
+  }
+
+  .client-history-filter {
+    min-width: 0;
+  }
+}

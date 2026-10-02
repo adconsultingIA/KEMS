@@ -5,8 +5,18 @@ import {
   CircleCheck,
   Clock3,
   FileText,
+  History,
+  LockKeyhole,
+  Play,
+  RefreshCcw,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
+  SlidersHorizontal,
+  UserCheck,
+  UserRound,
+  UserRoundCheck,
+  XCircle,
   TrendingUp,
 } from "lucide-react"
 
@@ -28,6 +38,58 @@ import {
 import type {
   ApiActivity,
 } from "../../services/activitiesApi"
+
+function activityIcon(
+  eventType: string,
+) {
+  const icons = {
+    "action.created":
+      FileText,
+    "action.assigned":
+      UserCheck,
+    "action.reassigned":
+      UserRoundCheck,
+    "action.started":
+      Play,
+    "action.blocked":
+      LockKeyhole,
+    "action.completed":
+      CircleCheck,
+    "action.reopened":
+      RefreshCcw,
+    "action.cancelled":
+      XCircle,
+  }
+
+  return (
+    icons[
+      eventType as keyof typeof icons
+    ]
+    ?? Clock3
+  )
+}
+
+
+function actorLabel(
+  activity: ApiActivity,
+) {
+  if (
+    activity.actor_type
+      === "client"
+  ) {
+    return "Client"
+  }
+
+  if (
+    activity.actor_type
+      === "internal"
+  ) {
+    return "Équipe KEMS"
+  }
+
+  return "Système KEMS"
+}
+
 
 function activityLabel(
   eventType: string,
@@ -109,16 +171,140 @@ function formatActivityDate(
     return value
   }
 
-  return new Intl.DateTimeFormat(
-    "fr-CH",
-    {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-  ).format(date)
+  const now =
+    new Date()
+
+  const startOfToday =
+    new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    )
+
+  const startOfDate =
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    )
+
+  const diffDays =
+    Math.round(
+      (
+        startOfToday.getTime()
+        - startOfDate.getTime()
+      )
+      / 86_400_000,
+    )
+
+  const time =
+    new Intl.DateTimeFormat(
+      "fr-CH",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    ).format(date)
+
+  if (diffDays === 0) {
+    return `Aujourd'hui · ${time}`
+  }
+
+  if (diffDays === 1) {
+    return `Hier · ${time}`
+  }
+
+  const day =
+    new Intl.DateTimeFormat(
+      "fr-CH",
+      {
+        day: "2-digit",
+        month: "short",
+      },
+    ).format(date)
+
+  return `${day} · ${time}`
 }
+
+
+const historyContextOptions = [
+  {
+    value: "all",
+    label: "Tous les métiers",
+  },
+  {
+    value: "commercial",
+    label: "Commercial",
+  },
+  {
+    value: "assurance",
+    label: "Assurance",
+  },
+  {
+    value: "investissement",
+    label: "Investissement",
+  },
+  {
+    value: "fiduciaire",
+    label: "Fiduciaire",
+  },
+  {
+    value: "technologies",
+    label: "Technologies",
+  },
+  {
+    value: "direction",
+    label: "Direction",
+  },
+  {
+    value: "core",
+    label: "KEMS Core",
+  },
+  {
+    value: "client",
+    label: "Client 360°",
+  },
+]
+
+
+const historyEventOptions = [
+  {
+    value: "all",
+    label: "Tous les événements",
+  },
+  {
+    value: "action.created",
+    label: "Action créée",
+  },
+  {
+    value: "action.assigned",
+    label: "Action assignée",
+  },
+  {
+    value: "action.reassigned",
+    label: "Action réassignée",
+  },
+  {
+    value: "action.started",
+    label: "Traitement démarré",
+  },
+  {
+    value: "action.blocked",
+    label: "Action bloquée",
+  },
+  {
+    value: "action.completed",
+    label: "Action terminée",
+  },
+  {
+    value: "action.reopened",
+    label: "Action réouverte",
+  },
+  {
+    value: "action.cancelled",
+    label: "Action annulée",
+  },
+]
 
 
 export function Client720Page() {
@@ -152,6 +338,60 @@ export function Client720Page() {
       null,
     )
 
+  const [
+    showAllActivities,
+    setShowAllActivities,
+  ] =
+    useState(false)
+
+  const [
+    activeSection,
+    setActiveSection,
+  ] =
+    useState<
+      "overview"
+      | "history"
+    >("overview")
+
+  const [
+    historyContext,
+    setHistoryContext,
+  ] =
+    useState("all")
+
+  const [
+    historyEventType,
+    setHistoryEventType,
+  ] =
+    useState("all")
+
+  const visibleActivities =
+    showAllActivities
+      ? activities
+      : activities.slice(
+          0,
+          6,
+        )
+
+  const historyActivities =
+    activities.filter(
+      (
+        activity,
+      ) =>
+        (
+          historyContext
+            === "all"
+          || activity.context
+            === historyContext
+        )
+        && (
+          historyEventType
+            === "all"
+          || activity.event_type
+            === historyEventType
+        ),
+    )
+
 
   useEffect(
     () => {
@@ -177,7 +417,7 @@ export function Client720Page() {
               token,
               {
                 contactId,
-                limit: 50,
+                limit: 500,
               },
             )
           },
@@ -296,16 +536,91 @@ export function Client720Page() {
       </section>
 
       <div className="section-tabs">
-        <button className="tab active">Overview</button>
-        <button className="tab">Relations</button>
-        <button className="tab">Commercial</button>
-        <button className="tab">Assurance</button>
-        <button className="tab">Investissement</button>
-        <button className="tab">Fiduciaire</button>
-        <button className="tab">Documents</button>
-        <button className="tab">Historique</button>
+        <button
+          type="button"
+          className={
+            activeSection
+              === "overview"
+              ? "tab active"
+              : "tab"
+          }
+          onClick={() =>
+            setActiveSection(
+              "overview",
+            )
+          }
+        >
+          Overview
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Relations
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Commercial
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Assurance
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Investissement
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Fiduciaire
+        </button>
+
+        <button
+          type="button"
+          className="tab"
+        >
+          Documents
+        </button>
+
+        <button
+          type="button"
+          className={
+            activeSection
+              === "history"
+              ? "tab active"
+              : "tab"
+          }
+          onClick={() =>
+            setActiveSection(
+              "history",
+            )
+          }
+        >
+          Historique
+        </button>
       </div>
 
+      <div
+        className={
+          activeSection
+            === "overview"
+            ? "client720-overview"
+            : "client720-overview is-hidden"
+        }
+      >
       <section className="metric-grid three">
         <MetricCard
           label="Relationship Health"
@@ -402,7 +717,18 @@ export function Client720Page() {
           <div className="panel-heading">
             <div>
               <span className="eyebrow">720°</span>
-              <h2>Activité récente</h2>
+
+              <div className="timeline-heading-row">
+                <h2>
+                  Activité récente
+                </h2>
+
+                {activities.length ? (
+                  <span className="timeline-count">
+                    {activities.length}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -424,10 +750,16 @@ export function Client720Page() {
             </div>
           ) : activities.length ? (
             <div className="timeline">
-              {activities.map(
+              {visibleActivities.map(
                 (
                   activity,
-                ) => (
+                ) => {
+                  const ActivityIcon =
+                    activityIcon(
+                      activity.event_type,
+                    )
+
+                  return (
                   <div
                     className={
                       `timeline-item timeline-context-${activity.context}`
@@ -436,7 +768,11 @@ export function Client720Page() {
                       activity.id
                     }
                   >
-                    <div className="timeline-dot" />
+                    <div className="timeline-dot">
+                      <ActivityIcon
+                        size={10}
+                      />
+                    </div>
 
                     <div>
                       <span className="timeline-date">
@@ -455,13 +791,33 @@ export function Client720Page() {
                         }
                       </strong>
 
+                      <div className="timeline-meta">
+                        <span
+                          className={
+                            `timeline-context-chip timeline-context-chip-${activity.context}`
+                          }
+                        >
+                          {
+                            contextLabel(
+                              activity.context,
+                            )
+                          }
+                        </span>
+
+                        <span className="timeline-actor">
+                          <UserRound
+                            size={11}
+                          />
+
+                          {
+                            actorLabel(
+                              activity,
+                            )
+                          }
+                        </span>
+                      </div>
+
                       <p>
-                        {
-                          contextLabel(
-                            activity.context,
-                          )
-                        }
-                        {" · "}
                         {
                           activity.title
                         }
@@ -480,8 +836,30 @@ export function Client720Page() {
                       }
                     </div>
                   </div>
-                ),
+                  )
+                },
               )}
+
+              {activities.length > 6 ? (
+                <button
+                  type="button"
+                  className="timeline-more-button"
+                  onClick={() =>
+                    setShowAllActivities(
+                      (
+                        current,
+                      ) =>
+                        !current,
+                    )
+                  }
+                >
+                  {
+                    showAllActivities
+                      ? "Réduire l'historique"
+                      : `Voir tout l'historique (${activities.length})`
+                  }
+                </button>
+              ) : null}
             </div>
           ) : (
             <div className="timeline-state">
@@ -497,6 +875,361 @@ export function Client720Page() {
           )}
         </div>
       </section>
+      </div>
+
+      {activeSection === "history" ? (
+        <section className="panel client-history-panel">
+          <div className="client-history-header">
+            <div>
+              <span className="eyebrow">
+                Historique 720°
+              </span>
+
+              <h2>
+                Historique du client
+              </h2>
+
+              <p>
+                Vue chronologique des événements
+                accessibles dans votre contexte KEMS.
+              </p>
+            </div>
+
+            <div className="client-history-summary">
+              <History
+                size={18}
+              />
+
+              <div>
+                <strong>
+                  {
+                    historyActivities.length
+                  }
+                </strong>
+
+                <span>
+                  événement{
+                    historyActivities.length
+                      > 1
+                      ? "s"
+                      : ""
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="client-history-toolbar">
+            <div className="client-history-toolbar-title">
+              <SlidersHorizontal
+                size={15}
+              />
+
+              <span>
+                Filtres
+              </span>
+            </div>
+
+            <label className="client-history-filter">
+              <span>
+                Métier
+              </span>
+
+              <select
+                value={
+                  historyContext
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setHistoryContext(
+                    event.target.value,
+                  )
+                }
+              >
+                {
+                  historyContextOptions.map(
+                    (
+                      option,
+                    ) => (
+                      <option
+                        key={
+                          option.value
+                        }
+                        value={
+                          option.value
+                        }
+                      >
+                        {
+                          option.label
+                        }
+                      </option>
+                    ),
+                  )
+                }
+              </select>
+            </label>
+
+            <label className="client-history-filter">
+              <span>
+                Événement
+              </span>
+
+              <select
+                value={
+                  historyEventType
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setHistoryEventType(
+                    event.target.value,
+                  )
+                }
+              >
+                {
+                  historyEventOptions.map(
+                    (
+                      option,
+                    ) => (
+                      <option
+                        key={
+                          option.value
+                        }
+                        value={
+                          option.value
+                        }
+                      >
+                        {
+                          option.label
+                        }
+                      </option>
+                    ),
+                  )
+                }
+              </select>
+            </label>
+
+            <button
+              type="button"
+              className="client-history-reset"
+              disabled={
+                historyContext
+                  === "all"
+                && historyEventType
+                  === "all"
+              }
+              onClick={() => {
+                setHistoryContext(
+                  "all",
+                )
+
+                setHistoryEventType(
+                  "all",
+                )
+              }}
+            >
+              <RotateCcw
+                size={13}
+              />
+
+              Réinitialiser
+            </button>
+          </div>
+
+          <div className="client-history-results">
+            <span>
+              {
+                historyActivities.length
+              }
+              {" "}
+              résultat{
+                historyActivities.length
+                  > 1
+                  ? "s"
+                  : ""
+              }
+            </span>
+
+            {
+              historyActivities.length
+                !== activities.length
+                ? (
+                  <small>
+                    sur {
+                      activities.length
+                    } événement{
+                      activities.length
+                        > 1
+                        ? "s"
+                        : ""
+                    }
+                  </small>
+                )
+                : null
+            }
+          </div>
+
+          {activitiesLoading ? (
+            <div className="timeline-state client-history-state">
+              <RefreshCw
+                size={18}
+              />
+
+              <span>
+                Chargement de l'historique...
+              </span>
+            </div>
+          ) : activitiesError ? (
+            <div className="timeline-state error client-history-state">
+              <span>
+                {activitiesError}
+              </span>
+            </div>
+          ) : historyActivities.length ? (
+            <div className="timeline client-history-timeline">
+              {
+                historyActivities.map(
+                  (
+                    activity,
+                  ) => {
+                    const ActivityIcon =
+                      activityIcon(
+                        activity.event_type,
+                      )
+
+                    return (
+                      <div
+                        className={
+                          `timeline-item timeline-context-${activity.context}`
+                        }
+                        key={
+                          activity.id
+                        }
+                      >
+                        <div className="timeline-dot">
+                          <ActivityIcon
+                            size={10}
+                          />
+                        </div>
+
+                        <div>
+                          <span className="timeline-date">
+                            {
+                              formatActivityDate(
+                                activity.created_at,
+                              )
+                            }
+                          </span>
+
+                          <strong>
+                            {
+                              activityLabel(
+                                activity.event_type,
+                              )
+                            }
+                          </strong>
+
+                          <div className="timeline-meta">
+                            <span
+                              className={
+                                `timeline-context-chip timeline-context-chip-${activity.context}`
+                              }
+                            >
+                              {
+                                contextLabel(
+                                  activity.context,
+                                )
+                              }
+                            </span>
+
+                            <span className="timeline-actor">
+                              <UserRound
+                                size={11}
+                              />
+
+                              {
+                                actorLabel(
+                                  activity,
+                                )
+                              }
+                            </span>
+                          </div>
+
+                          <p>
+                            {
+                              activity.title
+                            }
+                          </p>
+
+                          {
+                            activity.description
+                              ? (
+                                <small className="timeline-detail">
+                                  {
+                                    activity.description
+                                  }
+                                </small>
+                              )
+                              : null
+                          }
+
+                          <div className="client-history-tech-meta">
+                            <span>
+                              Source
+                            </span>
+
+                            <strong>
+                              {
+                                activity.source_type
+                              }
+                            </strong>
+
+                            {
+                              activity.action_id
+                                ? (
+                                  <>
+                                    <span>
+                                      Action
+                                    </span>
+
+                                    <strong>
+                                      {
+                                        activity.action_id.slice(
+                                          0,
+                                          8,
+                                        )
+                                      }
+                                    </strong>
+                                  </>
+                                )
+                                : null
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  },
+                )
+              }
+            </div>
+          ) : (
+            <div className="timeline-state client-history-state">
+              <History
+                size={20}
+              />
+
+              <strong>
+                Aucun événement correspondant
+              </strong>
+
+              <span>
+                Modifie ou réinitialise les filtres.
+              </span>
+            </div>
+          )}
+        </section>
+      ) : null}
     </div>
   )
 }
