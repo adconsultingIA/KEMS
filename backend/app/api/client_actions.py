@@ -24,6 +24,9 @@ from app.schemas.action import (
 from app.schemas.auth import (
     AuthContextResponse,
 )
+from app.services.activity_service import (
+    record_action_created_activity,
+)
 
 
 router = APIRouter(
@@ -224,6 +227,17 @@ def create_client_advice_request(
     )
 
     db.add(action)
+    db.flush()
+
+    record_action_created_activity(
+        db,
+        action=action,
+        actor_type="client",
+        actor_contact_id=(
+            contact.id
+        ),
+    )
+
     db.commit()
     db.refresh(action)
 

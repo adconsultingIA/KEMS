@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
 from app.models import (
+    Activity,
     Action,
     AuthAccount,
     AuthSession,
@@ -18,6 +19,7 @@ from app.models import (
     Team,
     UserMembership,
 )
+from app.api.activities import router as activities_router
 from app.api.actions import router as actions_router
 from app.api.auth import router as auth_router
 from app.api.client_actions import router as client_actions_router
@@ -55,6 +57,7 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+app.include_router(activities_router)
 app.include_router(actions_router)
 app.include_router(core_router)
 app.include_router(contacts_router)

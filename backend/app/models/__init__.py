@@ -1,3 +1,4 @@
+from app.models.activity import Activity
 from app.models.action import Action
 from app.models.auth_account import AuthAccount
 from app.models.auth_session import AuthSession
@@ -16,6 +17,7 @@ from app.models.user_membership import UserMembership
 
 
 __all__ = [
+    "Activity",
     "Action",
     "AuthAccount",
     "AuthSession",

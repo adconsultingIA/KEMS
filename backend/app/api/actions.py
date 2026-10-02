@@ -31,6 +31,9 @@ from app.schemas.action import (
 from app.schemas.auth import (
     AuthContextResponse,
 )
+from app.services.activity_service import (
+    record_action_created_activity,
+)
 from app.services.auth_service import (
     projection_from_unit,
 )
@@ -422,6 +425,17 @@ def create_action(
     )
 
     db.add(action)
+    db.flush()
+
+    record_action_created_activity(
+        db,
+        action=action,
+        actor_type="internal",
+        actor_profile_id=(
+            auth.profile.id
+        ),
+    )
+
     db.commit()
     db.refresh(action)
 
