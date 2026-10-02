@@ -20,6 +20,7 @@ from app.models import (
 )
 from app.api.actions import router as actions_router
 from app.api.auth import router as auth_router
+from app.api.client_actions import router as client_actions_router
 from app.api.contact_organizations import (
     router as contact_organizations_router,
 )
@@ -61,6 +62,7 @@ app.include_router(deduplication_router)
 app.include_router(ingestion_router)
 app.include_router(organizations_router)
 app.include_router(contact_organizations_router)
+app.include_router(client_actions_router)
 app.include_router(leads_router)
 app.include_router(opportunities_router)
 

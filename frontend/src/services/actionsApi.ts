@@ -148,3 +148,54 @@ export async function updateActionRequest(
 
   return response.json()
 }
+
+
+export type ClientAdviceRequestPayload = {
+  domain: string
+  subject: string
+  description: string
+  urgency:
+    | "low"
+    | "normal"
+    | "urgent"
+}
+
+
+export type ClientAdviceRequestResponse = {
+  reference: string
+  action: ApiAction
+}
+
+
+export async function createClientAdviceRequest(
+  token: string,
+  payload:
+    ClientAdviceRequestPayload,
+): Promise<ClientAdviceRequestResponse> {
+  const response =
+    await fetch(
+      `${API_BASE_URL}/api/v1/client/actions/advice-request`,
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            `Bearer ${token}`,
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify(
+          payload,
+        ),
+      },
+    )
+
+  if (!response.ok) {
+    throw new Error(
+      await parseError(
+        response,
+      ),
+    )
+  }
+
+  return response.json()
+}

@@ -39,7 +39,9 @@ export type ActionsContextValue = {
     (
       input:
         AdviceRequestInput,
-    ) => AdviceRequestResult
+    ) => Promise<
+      AdviceRequestResult
+    >
 }
 
 

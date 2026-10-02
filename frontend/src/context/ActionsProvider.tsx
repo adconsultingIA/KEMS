@@ -15,6 +15,7 @@ import {
 } from "./actions-context"
 
 import {
+  createClientAdviceRequest,
   listActionsRequest,
   updateActionRequest,
 } from "../services/actionsApi"
@@ -32,18 +33,6 @@ import {
 } from "../hooks/useProjection"
 
 
-const CLIENT_REQUEST_KEY =
-  "kems-client-demo-requests"
-
-
-function generateReference() {
-  const timestamp =
-    Date.now()
-      .toString()
-      .slice(-6)
-
-  return `KEMS-REQ-${timestamp}`
-}
 
 
 export function ActionsProvider({
@@ -251,52 +240,53 @@ export function ActionsProvider({
     )
 
 
-  function addAdviceRequest(
-    input:
-      AdviceRequestInput,
-  ) {
-    const reference =
-      generateReference()
-
-    const stored =
-      localStorage.getItem(
-        CLIENT_REQUEST_KEY,
-      )
-
-    let current:
-      unknown[] = []
-
-    if (stored) {
-      try {
-        current =
-          JSON.parse(
-            stored,
+  const addAdviceRequest =
+    useCallback(
+      async (
+        input:
+          AdviceRequestInput,
+      ) => {
+        if (
+          !token
+          || auth?.account_type
+            !== "client"
+        ) {
+          throw new Error(
+            "Session client invalide.",
           )
-      } catch {
-        current = []
-      }
-    }
+        }
 
-    localStorage.setItem(
-      CLIENT_REQUEST_KEY,
-      JSON.stringify(
-        [
-          {
-            reference,
-            ...input,
-            createdAt:
-              new Date()
-                .toISOString(),
-          },
-          ...current,
-        ],
-      ),
+        const result =
+          await createClientAdviceRequest(
+            token,
+            {
+              domain:
+                input.domain,
+              subject:
+                input.subject,
+              description:
+                input.description,
+              urgency:
+                input.urgency
+                  === "urgent"
+                  ? "urgent"
+                  : input.urgency
+                      === "low"
+                    ? "low"
+                    : "normal",
+            },
+          )
+
+        return {
+          reference:
+            result.reference,
+        }
+      },
+      [
+        auth?.account_type,
+        token,
+      ],
     )
-
-    return {
-      reference,
-    }
-  }
 
 
   const value =
@@ -315,6 +305,7 @@ export function ActionsProvider({
         error,
         refreshActions,
         completeAction,
+        addAdviceRequest,
       ],
     )
 

@@ -104,3 +104,19 @@ class ActionResponse(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+
+class ClientAdviceRequestCreate(BaseModel):
+    domain: str
+    subject: str
+    description: str
+    urgency: Literal[
+        "low",
+        "normal",
+        "urgent",
+    ] = "normal"
+
+
+class ClientAdviceRequestResponse(BaseModel):
+    reference: str
+    action: ActionResponse

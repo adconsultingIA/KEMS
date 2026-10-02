@@ -90,6 +90,12 @@ export function ClientPortalPage() {
   const [urgency, setUrgency] =
     useState("normal")
 
+  const [submitting, setSubmitting] =
+    useState(false)
+
+  const [submitError, setSubmitError] =
+    useState<string | null>(null)
+
   function closeDrawer() {
     setDrawerOpen(false)
 
@@ -99,22 +105,42 @@ export function ClientPortalPage() {
     )
   }
 
-  function submitRequest(
+  async function submitRequest(
     event: FormEvent,
   ) {
     event.preventDefault()
 
-    const result = addAdviceRequest({
-      entity: clientFullName,
-      domain,
-      subject,
-      description,
-      urgency,
-    })
+    try {
+      setSubmitting(true)
+      setSubmitError(null)
 
-    setReference(
-      result.reference,
-    )
+      const result =
+        await addAdviceRequest({
+          entity:
+            clientFullName,
+          domain,
+          subject,
+          description,
+          urgency,
+        })
+
+      setReference(
+        result.reference,
+      )
+    } catch (
+      caught
+    ) {
+      setSubmitError(
+        caught instanceof Error
+          ? caught.message
+          : (
+            "Impossible d'envoyer "
+            + "la demande."
+          ),
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -428,6 +454,12 @@ export function ClientPortalPage() {
                   </select>
                 </label>
 
+                {submitError ? (
+                  <div className="client-request-error">
+                    {submitError}
+                  </div>
+                ) : null}
+
                 <div className="drawer-footer">
                   <button
                     type="button"
@@ -440,9 +472,15 @@ export function ClientPortalPage() {
                   <button
                     type="submit"
                     className="button primary large warm-action"
+                    disabled={submitting}
                   >
                     <MessageSquareText size={17} />
-                    Envoyer à KEMS
+
+                    {
+                      submitting
+                        ? "Envoi..."
+                        : "Envoyer à KEMS"
+                    }
                   </button>
                 </div>
               </form>

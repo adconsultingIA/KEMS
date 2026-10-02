@@ -4838,3 +4838,42 @@ h3 {
   --context-bg: #eeeaff;
   --context-border: rgba(98, 65, 234, .18);
 }
+
+/* =========================================================
+   CLIENT 360 — REAL ACTION REQUEST
+   ========================================================= */
+
+.client-request-error {
+  padding:
+    11px 13px;
+
+  border-radius: 11px;
+
+  background:
+    rgba(
+      220,
+      38,
+      38,
+      .07
+    );
+
+  border:
+    1px solid
+    rgba(
+      220,
+      38,
+      38,
+      .14
+    );
+
+  color:
+    #b42318;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.advice-form button:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+}
