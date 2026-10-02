@@ -5215,3 +5215,28 @@ h3 {
   --timeline-context-color:
     #159c72;
 }
+
+/* =========================================================
+   C05.3 — TIMELINE GRID RESET
+   Le dot est désormais positionné en absolute.
+   On neutralise l'ancien layout grid.
+   ========================================================= */
+
+.timeline-item {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+
+  min-width: 0;
+}
+
+.timeline-item > div:last-child {
+  min-width: 0;
+  width: 100%;
+}
+
+.timeline-item strong,
+.timeline-item p,
+.timeline-detail {
+  overflow-wrap: anywhere;
+}
