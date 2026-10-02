@@ -68,6 +68,34 @@ export type Client720Organization = {
 }
 
 
+export type Client720RelationLink = {
+  id: string
+
+  contact_id: string
+  organization_id: string
+
+  relationship_type: string
+
+  job_title: string | null
+  relationship_role: string | null
+
+  is_primary: boolean
+  is_active: boolean
+
+  started_at: string | null
+  ended_at: string | null
+
+  created_at: string
+  updated_at: string
+}
+
+
+export type Client720Relation = {
+  relationship: Client720RelationLink
+  organization: Client720Organization
+}
+
+
 export type Client720DataQuality = {
   verification_status: string
   is_verified: boolean
@@ -84,6 +112,7 @@ export type Client720DataQuality = {
 export type Client720Projection = {
   contact: Client720Contact
   organization: Client720Organization | null
+  relations: Client720Relation[]
   data_quality: Client720DataQuality
 }
 

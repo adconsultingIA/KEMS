@@ -19,6 +19,7 @@ from app.schemas.auth import AuthContextResponse
 from app.schemas.client_720 import (
     Client720DataQuality,
     Client720Projection,
+    Client720Relation,
 )
 
 
@@ -124,6 +125,51 @@ def resolve_primary_organization(
     return None
 
 
+def list_contact_relations(
+    db: Session,
+    contact: Contact,
+) -> list[Client720Relation]:
+    links = db.scalars(
+        select(
+            ContactOrganization
+        )
+        .where(
+            ContactOrganization.contact_id
+            == contact.id
+        )
+        .order_by(
+            ContactOrganization.is_primary
+            .desc(),
+            ContactOrganization.is_active
+            .desc(),
+            ContactOrganization.created_at
+            .desc(),
+        )
+    ).all()
+
+    relations: list[
+        Client720Relation
+    ] = []
+
+    for link in links:
+        organization = db.get(
+            Organization,
+            link.organization_id,
+        )
+
+        if not organization:
+            continue
+
+        relations.append(
+            Client720Relation(
+                relationship=link,
+                organization=organization,
+            )
+        )
+
+    return relations
+
+
 def build_data_quality(
     contact: Contact,
     organization: (
@@ -205,9 +251,15 @@ def get_client_720_projection(
         )
     )
 
+    relations = list_contact_relations(
+        db,
+        contact,
+    )
+
     return Client720Projection(
         contact=contact,
         organization=organization,
+        relations=relations,
         data_quality=(
             build_data_quality(
                 contact,

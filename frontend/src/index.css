@@ -5836,3 +5836,233 @@ h3 {
 .entity-contact-grid strong {
   overflow-wrap: anywhere;
 }
+
+/* =========================================================
+   C06.3 — CLIENT 720 REAL ORGANIZATION RELATIONS
+   ========================================================= */
+
+.client-relations-panel {
+  padding: 24px;
+}
+
+.client-relations-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+
+  padding-bottom: 20px;
+
+  border-bottom:
+    1px solid var(--border);
+}
+
+.client-relations-header h2 {
+  margin:
+    0 0 6px;
+
+  font-size: 22px;
+}
+
+.client-relations-header p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.client-relations-count {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding:
+    9px 11px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    11px;
+
+  background:
+    var(--surface-soft);
+
+  color:
+    var(--purple);
+}
+
+.client-relations-count strong {
+  color: #20222a;
+}
+
+.client-relations-count span {
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.client-relations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  margin-top: 20px;
+}
+
+.client-relation-card {
+  display: grid;
+  grid-template-columns:
+    auto minmax(0, 1fr);
+
+  gap: 14px;
+
+  padding: 16px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    13px;
+
+  background: white;
+}
+
+.client-relation-icon {
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius:
+    11px;
+
+  background:
+    var(--purple-soft);
+
+  color:
+    var(--purple);
+}
+
+.client-relation-main {
+  min-width: 0;
+}
+
+.client-relation-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 14px;
+}
+
+.client-relation-title strong,
+.client-relation-title span {
+  display: block;
+}
+
+.client-relation-title > div:first-child > strong {
+  font-size: 14px;
+}
+
+.client-relation-title > div:first-child > span {
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+.client-relation-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin-top: 16px;
+  padding-top: 14px;
+
+  border-top:
+    1px solid var(--border);
+}
+
+.client-relation-grid span,
+.client-relation-grid strong {
+  display: block;
+}
+
+.client-relation-grid span {
+  color: var(--muted);
+
+  font-size: 9px;
+
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.client-relation-grid strong {
+  margin-top: 5px;
+
+  font-size: 11px;
+}
+
+.client-relation-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+
+  margin-top: 14px;
+}
+
+.client-relation-footer > span {
+  color: var(--muted);
+
+  font-size: 9px;
+
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.client-relation-footer > strong {
+  margin-right: auto;
+
+  font-size: 10px;
+}
+
+.client-relations-empty {
+  min-height: 220px;
+}
+
+@media (max-width: 780px) {
+  .client-relations-header {
+    flex-direction: column;
+  }
+
+  .client-relations-count {
+    width: 100%;
+  }
+
+  .client-relation-title {
+    flex-direction: column;
+  }
+
+  .client-relation-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .client-relation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .client-relation-grid {
+    grid-template-columns: 1fr;
+  }
+}

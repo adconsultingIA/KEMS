@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from app.schemas.contact import ContactResponse
+from app.schemas.contact_organization import ContactOrganizationResponse
 from app.schemas.organization import OrganizationResponse
 
 
@@ -16,6 +17,11 @@ class Client720DataQuality(BaseModel):
     completeness_score: int
 
 
+class Client720Relation(BaseModel):
+    relationship: ContactOrganizationResponse
+    organization: OrganizationResponse
+
+
 class Client720Projection(BaseModel):
     contact: ContactResponse
 
@@ -23,5 +29,7 @@ class Client720Projection(BaseModel):
         OrganizationResponse
         | None
     )
+
+    relations: list[Client720Relation]
 
     data_quality: Client720DataQuality

@@ -124,6 +124,66 @@ function locationLabel(
 }
 
 
+function relationshipTypeLabel(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      employee:
+        "Collaborateur",
+      owner:
+        "Propriétaire",
+      founder:
+        "Fondateur",
+      director:
+        "Direction",
+      advisor:
+        "Conseiller",
+      partner:
+        "Partenaire",
+      client:
+        "Client",
+    }
+
+  return (
+    labels[value]
+    ?? value.replaceAll(
+      "_",
+      " ",
+    )
+  )
+}
+
+
+function relationshipRoleLabel(
+  value: string | null,
+) {
+  if (!value) {
+    return "Rôle non renseigné"
+  }
+
+  const labels:
+    Record<string, string> = {
+      decision_maker:
+        "Décideur",
+      employee:
+        "Collaborateur",
+      influencer:
+        "Influenceur",
+      owner:
+        "Propriétaire",
+    }
+
+  return (
+    labels[value]
+    ?? value.replaceAll(
+      "_",
+      " ",
+    )
+  )
+}
+
+
 function activityIcon(
   eventType: string,
 ) {
@@ -458,6 +518,7 @@ export function Client720Page() {
   ] =
     useState<
       "overview"
+      | "relations"
       | "history"
     >("overview")
 
@@ -863,7 +924,17 @@ export function Client720Page() {
 
         <button
           type="button"
-          className="tab"
+          className={
+            activeSection
+              === "relations"
+              ? "tab active"
+              : "tab"
+          }
+          onClick={() =>
+            setActiveSection(
+              "relations",
+            )
+          }
         >
           Relations
         </button>
@@ -1194,6 +1265,237 @@ export function Client720Page() {
         </div>
       </section>
       </div>
+
+      {activeSection === "relations" ? (
+        <section className="panel client-relations-panel">
+          <div className="client-relations-header">
+            <div>
+              <span className="eyebrow">
+                Relations Core
+              </span>
+
+              <h2>
+                Organisations liées
+              </h2>
+
+              <p>
+                Affiliations actuelles et historiques
+                connues par KEMS Core.
+              </p>
+            </div>
+
+            <div className="client-relations-count">
+              <Building2
+                size={17}
+              />
+
+              <strong>
+                {
+                  client720?.relations.length
+                  ?? 0
+                }
+              </strong>
+
+              <span>
+                relation{
+                  (
+                    client720?.relations.length
+                    ?? 0
+                  ) > 1
+                    ? "s"
+                    : ""
+                }
+              </span>
+            </div>
+          </div>
+
+          {
+            client720?.relations.length
+              ? (
+                <div className="client-relations-list">
+                  {
+                    client720.relations.map(
+                      (
+                        relation,
+                      ) => (
+                        <article
+                          className="client-relation-card"
+                          key={
+                            relation.relationship.id
+                          }
+                        >
+                          <div className="client-relation-icon">
+                            <Building2
+                              size={20}
+                            />
+                          </div>
+
+                          <div className="client-relation-main">
+                            <div className="client-relation-title">
+                              <div>
+                                <strong>
+                                  {
+                                    relation.organization.name
+                                  }
+                                </strong>
+
+                                {
+                                  relation.organization.legal_name
+                                  && relation.organization.legal_name
+                                    !== relation.organization.name
+                                    ? (
+                                      <span>
+                                        {
+                                          relation.organization.legal_name
+                                        }
+                                      </span>
+                                    )
+                                    : null
+                                }
+                              </div>
+
+                              <div className="badge-row">
+                                {
+                                  relation.relationship.is_primary
+                                    ? (
+                                      <StatusBadge tone="info">
+                                        Principale
+                                      </StatusBadge>
+                                    )
+                                    : null
+                                }
+
+                                <StatusBadge
+                                  tone={
+                                    relation.relationship.is_active
+                                      ? "success"
+                                      : undefined
+                                  }
+                                >
+                                  {
+                                    relation.relationship.is_active
+                                      ? "Active"
+                                      : "Historique"
+                                  }
+                                </StatusBadge>
+                              </div>
+                            </div>
+
+                            <div className="client-relation-grid">
+                              <div>
+                                <span>
+                                  Relation
+                                </span>
+
+                                <strong>
+                                  {
+                                    relationshipTypeLabel(
+                                      relation.relationship.relationship_type,
+                                    )
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Fonction
+                                </span>
+
+                                <strong>
+                                  {
+                                    relation.relationship.job_title
+                                    ?? client720.contact.job_title
+                                    ?? "Non renseignée"
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Rôle
+                                </span>
+
+                                <strong>
+                                  {
+                                    relationshipRoleLabel(
+                                      relation.relationship.relationship_role,
+                                    )
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Localisation
+                                </span>
+
+                                <strong>
+                                  {
+                                    [
+                                      relation.organization.city,
+                                      relation.organization.country,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(", ")
+                                    || "Non renseignée"
+                                  }
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div className="client-relation-footer">
+                              <span>
+                                Source
+                              </span>
+
+                              <strong>
+                                {
+                                  formatSourceLabel(
+                                    relation.organization.source_type,
+                                  )
+                                }
+                              </strong>
+
+                              {
+                                relation.organization.is_verified
+                                  ? (
+                                    <StatusBadge tone="success">
+                                      Organisation vérifiée
+                                    </StatusBadge>
+                                  )
+                                  : (
+                                    <StatusBadge>
+                                      Organisation non vérifiée
+                                    </StatusBadge>
+                                  )
+                              }
+                            </div>
+                          </div>
+                        </article>
+                      ),
+                    )
+                  }
+                </div>
+              )
+              : (
+                <div className="timeline-state client-relations-empty">
+                  <Building2
+                    size={20}
+                  />
+
+                  <strong>
+                    Aucune organisation liée
+                  </strong>
+
+                  <span>
+                    Aucune relation Contact ↔ Organisation
+                    n'est enregistrée dans KEMS Core.
+                  </span>
+                </div>
+              )
+          }
+        </section>
+      ) : null}
 
       {activeSection === "history" ? (
         <section className="panel client-history-panel">
