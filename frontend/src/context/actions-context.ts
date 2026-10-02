@@ -35,6 +35,19 @@ export type ActionsContextValue = {
       id: string,
     ) => Promise<void>
 
+  updateAction:
+    (
+      id: string,
+      payload: Partial<
+        Pick<
+          ApiAction,
+          | "status"
+          | "priority"
+          | "owner_profile_id"
+        >
+      >,
+    ) => Promise<void>
+
   addAdviceRequest:
     (
       input:

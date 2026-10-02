@@ -201,6 +201,52 @@ export function ActionsProvider({
   )
 
 
+  const updateAction =
+    useCallback(
+      async (
+        id: string,
+        payload:
+          Partial<
+            Pick<
+              ApiAction,
+              | "status"
+              | "priority"
+              | "owner_profile_id"
+            >
+          >,
+      ) => {
+        if (!token) {
+          return
+        }
+
+        const updated =
+          await updateActionRequest(
+            token,
+            id,
+            payload,
+          )
+
+        setActions(
+          (
+            current,
+          ) =>
+            current.map(
+              (
+                action,
+              ) =>
+                action.id
+                  === updated.id
+                  ? updated
+                  : action,
+            ),
+        )
+      },
+      [
+        token,
+      ],
+    )
+
+
   const completeAction =
     useCallback(
       async (
@@ -297,6 +343,7 @@ export function ActionsProvider({
         error,
         refreshActions,
         completeAction,
+        updateAction,
         addAdviceRequest,
       }),
       [
@@ -305,6 +352,7 @@ export function ActionsProvider({
         error,
         refreshActions,
         completeAction,
+        updateAction,
         addAdviceRequest,
       ],
     )

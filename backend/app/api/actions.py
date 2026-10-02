@@ -226,6 +226,49 @@ def profile_has_context(
     return False
 
 
+def profile_contexts(
+    db: Session,
+    profile_id: str,
+) -> list[str]:
+    memberships = db.scalars(
+        select(UserMembership).where(
+            UserMembership.user_id
+            == profile_id,
+            UserMembership.is_active
+            .is_(True),
+        )
+    ).all()
+
+    contexts: list[str] = []
+
+    for membership in memberships:
+        unit = db.get(
+            OrganizationalUnit,
+            membership.unit_id,
+        )
+
+        if (
+            not unit
+            or not unit.is_active
+        ):
+            continue
+
+        context = projection_from_unit(
+            unit
+        )
+
+        if (
+            context
+            and context
+            not in contexts
+        ):
+            contexts.append(
+                context
+            )
+
+    return contexts
+
+
 def validate_assignment_scope(
     db: Session,
     auth: AuthContextResponse,
@@ -234,10 +277,19 @@ def validate_assignment_scope(
     owner_profile_id: str | None,
     unit_id: str | None,
 ):
-    if is_direction(auth):
-        return
+    direction_special_context = (
+        is_direction(auth)
+        and context
+        in {
+            "direction",
+            "core",
+        }
+    )
 
-    if owner_profile_id:
+    if (
+        owner_profile_id
+        and not direction_special_context
+    ):
         if not profile_has_context(
             db,
             owner_profile_id,
@@ -260,6 +312,7 @@ def validate_assignment_scope(
 
         if (
             unit
+            and not direction_special_context
             and projection_from_unit(
                 unit
             )
@@ -501,6 +554,57 @@ def list_actions(
     return db.scalars(
         statement
     ).all()
+
+
+@router.get(
+    "/assignees",
+)
+def list_action_assignees(
+    auth: AuthContextResponse = Depends(
+        get_current_auth_context
+    ),
+    db: Session = Depends(get_db),
+):
+    require_internal_context(auth)
+
+    profiles = db.scalars(
+        select(Profile).where(
+            Profile.is_active
+            .is_(True)
+        ).order_by(
+            Profile.full_name
+        )
+    ).all()
+
+    result = []
+
+    for profile in profiles:
+        contexts = profile_contexts(
+            db,
+            profile.id,
+        )
+
+        if (
+            not is_direction(auth)
+            and auth.projection
+            not in contexts
+        ):
+            continue
+
+        result.append(
+            {
+                "id":
+                    profile.id,
+                "full_name":
+                    profile.full_name,
+                "email":
+                    profile.email,
+                "contexts":
+                    contexts,
+            }
+        )
+
+    return result
 
 
 @router.get(

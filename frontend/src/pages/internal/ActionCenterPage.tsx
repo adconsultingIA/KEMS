@@ -18,10 +18,13 @@ import {
   Sparkles,
   TrendingUp,
   UserRound,
+  ExternalLink,
+  UserCheck,
   Workflow,
 } from "lucide-react"
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react"
@@ -42,10 +45,19 @@ import {
   useProjection,
 } from "../../hooks/useProjection"
 
+import {
+  listActionAssigneesRequest,
+} from "../../services/actionsApi"
+
 import type {
+  ActionAssignee,
   ActionPriority,
   ActionStatus,
 } from "../../services/actionsApi"
+
+import {
+  useNavigate,
+} from "react-router-dom"
 
 
 function priorityIcon(
@@ -307,12 +319,16 @@ export function ActionCenterPage() {
     loading,
     error,
     refreshActions,
-    completeAction,
+    updateAction,
   } = useActions()
 
   const {
     auth,
+    token,
   } = useAuth()
+
+  const navigate =
+    useNavigate()
 
   const {
     activeContext,
@@ -346,6 +362,90 @@ export function ActionCenterPage() {
     setMineOnly,
   ] =
     useState(false)
+
+  const [
+    assignees,
+    setAssignees,
+  ] =
+    useState<
+      ActionAssignee[]
+    >([])
+
+  const [
+    updatingActionId,
+    setUpdatingActionId,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+
+  useEffect(
+    () => {
+      if (
+        !token
+        || auth?.account_type
+          !== "internal"
+      ) {
+        return
+      }
+
+      let cancelled = false
+
+      void listActionAssigneesRequest(
+        token,
+      )
+        .then(
+          (
+            result,
+          ) => {
+            if (!cancelled) {
+              setAssignees(
+                result,
+              )
+            }
+          },
+        )
+        .catch(
+          () => {
+            if (!cancelled) {
+              setAssignees([])
+            }
+          },
+        )
+
+      return () => {
+        cancelled = true
+      }
+    },
+    [
+      auth?.account_type,
+      token,
+    ],
+  )
+
+
+  async function patchAction(
+    actionId: string,
+    payload: Parameters<
+      typeof updateAction
+    >[1],
+  ) {
+    try {
+      setUpdatingActionId(
+        actionId,
+      )
+
+      await updateAction(
+        actionId,
+        payload,
+      )
+    } finally {
+      setUpdatingActionId(
+        null,
+      )
+    }
+  }
 
 
   const visibleActions =
@@ -918,6 +1018,189 @@ export function ActionCenterPage() {
                 </div>
 
 
+                {
+                  action.source_entity_id
+                  || action.contact_id
+                    ? (
+                      <div className="action-linked-resources">
+
+                        {action.source_entity_id ? (
+                          <div className="action-reference">
+                            <span>
+                              Référence
+                            </span>
+
+                            <strong>
+                              {
+                                action.source_entity_id
+                              }
+                            </strong>
+                          </div>
+                        ) : null}
+
+                        {action.contact_id ? (
+                          <button
+                            type="button"
+                            className="action-client-link"
+                            onClick={() =>
+                              navigate(
+                                `/hub/contacts/${action.contact_id}`,
+                              )
+                            }
+                          >
+                            <UserRound
+                              size={14}
+                            />
+
+                            Voir le Client 720°
+
+                            <ExternalLink
+                              size={13}
+                            />
+                          </button>
+                        ) : null}
+
+                      </div>
+                    )
+                    : null
+                }
+
+
+                <div className="action-operational-controls">
+
+                  <label>
+                    <span>
+                      Assignation
+                    </span>
+
+                    <select
+                      value={
+                        action.owner_profile_id
+                        ?? ""
+                      }
+                      disabled={
+                        updatingActionId
+                          === action.id
+                        || [
+                          "done",
+                          "cancelled",
+                        ].includes(
+                          action.status,
+                        )
+                      }
+                      onChange={
+                        (
+                          event,
+                        ) =>
+                          void patchAction(
+                            action.id,
+                            {
+                              owner_profile_id:
+                                event.target.value
+                                || null,
+                            },
+                          )
+                      }
+                    >
+                      <option value="">
+                        Non assignée
+                      </option>
+
+                      {
+                        assignees
+                          .filter(
+                            (
+                              assignee,
+                            ) =>
+                              assignee.contexts
+                                .includes(
+                                  action.context,
+                                )
+                              || (
+                                action.context
+                                  === "core"
+                                && assignee.contexts
+                                  .includes(
+                                    "direction",
+                                  )
+                              ),
+                          )
+                          .map(
+                            (
+                              assignee,
+                            ) => (
+                              <option
+                                key={
+                                  assignee.id
+                                }
+                                value={
+                                  assignee.id
+                                }
+                              >
+                                {
+                                  assignee.full_name
+                                }
+                              </option>
+                            ),
+                          )
+                      }
+                    </select>
+                  </label>
+
+
+                  <label>
+                    <span>
+                      Statut
+                    </span>
+
+                    <select
+                      value={
+                        action.status
+                      }
+                      disabled={
+                        updatingActionId
+                          === action.id
+                      }
+                      onChange={
+                        (
+                          event,
+                        ) =>
+                          void patchAction(
+                            action.id,
+                            {
+                              status:
+                                event.target
+                                  .value as
+                                  ActionStatus,
+                            },
+                          )
+                      }
+                    >
+                      <option value="todo">
+                        À faire
+                      </option>
+
+                      <option value="in_progress">
+                        En cours
+                      </option>
+
+                      <option value="blocked">
+                        Bloquée
+                      </option>
+
+                      <option value="done">
+                        Terminée
+                      </option>
+
+                      <option value="cancelled">
+                        Annulée
+                      </option>
+                    </select>
+                  </label>
+
+                </div>
+
+
                 <div className="action-card-footer">
 
                   <button
@@ -943,17 +1226,28 @@ export function ActionCenterPage() {
                     <button
                       type="button"
                       className="button primary"
+                      disabled={
+                        updatingActionId
+                          === action.id
+                      }
                       onClick={() =>
-                        void completeAction(
+                        void patchAction(
                           action.id,
+                          {
+                            owner_profile_id:
+                              auth?.profile?.id
+                              ?? action.owner_profile_id,
+                            status:
+                              "in_progress",
+                          },
                         )
                       }
                     >
-                      <CircleCheck
+                      <UserCheck
                         size={16}
                       />
 
-                      Traiter
+                      Prendre en charge
                     </button>
                   ) : null}
 

@@ -435,3 +435,128 @@ def test_complete_and_reopen_action(
         ]
         is None
     )
+
+
+def test_business_user_only_sees_eligible_assignees(
+    client,
+    db_session,
+):
+    tech = create_internal_user(
+        db_session,
+        full_name="Tech Assignee",
+        email="tech.assignee@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-assignee",
+    )
+
+    create_internal_user(
+        db_session,
+        full_name="Assurance Assignee",
+        email="assurance.assignee@kems.test",
+        unit_name="Assurance",
+        unit_code="ASSURANCE",
+        role_code="assurance-assignee",
+    )
+
+    headers = login(
+        client,
+        tech["profile"].email,
+    )
+
+    response = client.get(
+        "/api/v1/core/actions/assignees",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert len(payload) == 1
+
+    assert (
+        payload[0]["id"]
+        == tech["profile"].id
+    )
+
+    assert (
+        "technologies"
+        in payload[0]["contexts"]
+    )
+
+
+def test_direction_cannot_assign_cross_business_profile(
+    client,
+    db_session,
+):
+    direction = create_internal_user(
+        db_session,
+        full_name="Direction Manager",
+        email="direction.assignment@kems.test",
+        unit_name="Direction",
+        unit_code="DIRECTION",
+        role_code="direction-assignment",
+    )
+
+    tech = create_internal_user(
+        db_session,
+        full_name="Tech User",
+        email="tech.assignment@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-assignment",
+    )
+
+    assurance = create_internal_user(
+        db_session,
+        full_name="Assurance User",
+        email="assurance.assignment@kems.test",
+        unit_name="Assurance",
+        unit_code="ASSURANCE",
+        role_code="assurance-assignment",
+    )
+
+    headers = login(
+        client,
+        direction["profile"].email,
+    )
+
+    created = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title":
+                "Action Technologies",
+            "context":
+                "technologies",
+            "owner_profile_id":
+                tech["profile"].id,
+        },
+    )
+
+    assert (
+        created.status_code
+        == 201
+    )
+
+    action_id = (
+        created.json()["id"]
+    )
+
+    forbidden = client.patch(
+        (
+            "/api/v1/core/actions/"
+            f"{action_id}"
+        ),
+        headers=headers,
+        json={
+            "owner_profile_id":
+                assurance["profile"].id,
+        },
+    )
+
+    assert (
+        forbidden.status_code
+        == 403
+    )

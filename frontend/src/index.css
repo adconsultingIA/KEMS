@@ -4877,3 +4877,151 @@ h3 {
   opacity: .58;
   cursor: not-allowed;
 }
+
+/* =========================================================
+   C04.5 — ACTION OPERATIONAL CONTROLS
+   ========================================================= */
+
+.action-linked-resources {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  margin-top: 12px;
+  padding-top: 12px;
+
+  border-top: 1px solid var(--border);
+}
+
+.action-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-reference span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.action-reference strong {
+  font-size: 12px;
+}
+
+.action-client-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 9px;
+
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--action-context-color) 18%,
+      var(--border)
+    );
+
+  border-radius: 9px;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--action-context-color) 7%,
+      white
+    );
+
+  color:
+    var(--action-context-color);
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.action-client-link:hover {
+  transform: translateY(-1px);
+}
+
+.action-operational-controls {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+.action-operational-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.action-operational-controls label > span {
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.action-operational-controls select {
+  width: 100%;
+
+  min-height: 37px;
+
+  padding:
+    0 9px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    9px;
+
+  background:
+    white;
+
+  color:
+    var(--text);
+
+  font-size:
+    12px;
+
+  font-weight:
+    600;
+}
+
+.action-operational-controls select:focus {
+  outline:
+    2px solid
+    color-mix(
+      in srgb,
+      var(--action-context-color) 22%,
+      transparent
+    );
+
+  outline-offset:
+    1px;
+}
+
+.action-operational-controls select:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+@media(max-width: 560px) {
+  .action-operational-controls {
+    grid-template-columns: 1fr;
+  }
+}

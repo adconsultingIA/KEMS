@@ -118,6 +118,8 @@ export async function updateActionRequest(
       | "priority"
       | "title"
       | "description"
+      | "owner_profile_id"
+      | "unit_id"
     >
   >,
 ): Promise<ApiAction> {
@@ -135,6 +137,41 @@ export async function updateActionRequest(
         body: JSON.stringify(
           payload,
         ),
+      },
+    )
+
+  if (!response.ok) {
+    throw new Error(
+      await parseError(
+        response,
+      ),
+    )
+  }
+
+  return response.json()
+}
+
+
+
+export type ActionAssignee = {
+  id: string
+  full_name: string
+  email: string
+  contexts: string[]
+}
+
+
+export async function listActionAssigneesRequest(
+  token: string,
+): Promise<ActionAssignee[]> {
+  const response =
+    await fetch(
+      `${API_BASE_URL}/api/v1/core/actions/assignees`,
+      {
+        headers: {
+          Authorization:
+            `Bearer ${token}`,
+        },
       },
     )
 
