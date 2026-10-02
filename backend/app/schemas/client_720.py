@@ -39,6 +39,16 @@ class Client720Relation(BaseModel):
     organization: OrganizationResponse
 
 
+class Client720AffiliationSummary(BaseModel):
+    total_relations: int
+    active_relations: int
+    historical_relations: int
+
+    primary_organization_id: str | None
+
+    has_multiple_active_affiliations: bool
+
+
 class Client720Projection(BaseModel):
     contact: ContactResponse
 
@@ -48,6 +58,7 @@ class Client720Projection(BaseModel):
     )
 
     relations: list[Client720Relation]
+    affiliation_summary: Client720AffiliationSummary
 
     data_quality: Client720DataQuality
     provenance: Client720Provenance

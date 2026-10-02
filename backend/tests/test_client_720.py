@@ -605,3 +605,184 @@ def test_client_720_lists_missing_quality_fields(
         "job_title",
         "organization",
     }
+
+
+def test_client_720_affiliation_summary(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        contact,
+        organization,
+    ) = create_client_contact(
+        db_session
+    )
+
+    second_organization = Organization(
+        name="Second Company SA",
+        organization_type="company",
+        city="Zurich",
+        country="Suisse",
+        source_type="manual",
+        is_active=True,
+    )
+
+    db_session.add(
+        second_organization
+    )
+    db_session.flush()
+
+    second_relation = ContactOrganization(
+        contact_id=contact.id,
+        organization_id=(
+            second_organization.id
+        ),
+        relationship_type="advisor",
+        relationship_role="advisor",
+        is_primary=False,
+        is_active=True,
+    )
+
+    db_session.add(
+        second_relation
+    )
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    summary = response.json()[
+        "affiliation_summary"
+    ]
+
+    assert (
+        summary[
+            "total_relations"
+        ]
+        == 2
+    )
+
+    assert (
+        summary[
+            "active_relations"
+        ]
+        == 2
+    )
+
+    assert (
+        summary[
+            "historical_relations"
+        ]
+        == 0
+    )
+
+    assert (
+        summary[
+            "primary_organization_id"
+        ]
+        == organization.id
+    )
+
+    assert (
+        summary[
+            "has_multiple_active_affiliations"
+        ]
+        is True
+    )
+
+
+def test_client_720_affiliation_summary_counts_history(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        contact,
+        _,
+    ) = create_client_contact(
+        db_session
+    )
+
+    former_organization = Organization(
+        name="Historic Company SA",
+        organization_type="company",
+        source_type="manual",
+        is_active=True,
+    )
+
+    db_session.add(
+        former_organization
+    )
+    db_session.flush()
+
+    former_relation = ContactOrganization(
+        contact_id=contact.id,
+        organization_id=(
+            former_organization.id
+        ),
+        relationship_type="employee",
+        is_primary=False,
+        is_active=False,
+    )
+
+    db_session.add(
+        former_relation
+    )
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    summary = response.json()[
+        "affiliation_summary"
+    ]
+
+    assert (
+        summary[
+            "total_relations"
+        ]
+        == 2
+    )
+
+    assert (
+        summary[
+            "active_relations"
+        ]
+        == 1
+    )
+
+    assert (
+        summary[
+            "historical_relations"
+        ]
+        == 1
+    )

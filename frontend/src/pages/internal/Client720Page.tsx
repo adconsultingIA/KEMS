@@ -179,6 +179,83 @@ function missingFieldLabel(
 }
 
 
+function formatRelationDate(
+  value: string | null,
+) {
+  if (!value) {
+    return null
+  }
+
+  const date =
+    new Date(
+      `${value}T00:00:00`,
+    )
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-CH",
+    {
+      month: "short",
+      year: "numeric",
+    },
+  ).format(date)
+}
+
+
+function relationPeriodLabel(
+  startedAt: string | null,
+  endedAt: string | null,
+  isActive: boolean,
+) {
+  const start =
+    formatRelationDate(
+      startedAt,
+    )
+
+  const end =
+    formatRelationDate(
+      endedAt,
+    )
+
+  if (
+    !start
+    && !end
+  ) {
+    return isActive
+      ? "Période en cours"
+      : "Période non renseignée"
+  }
+
+  if (isActive) {
+    return start
+      ? `Depuis ${start}`
+      : "Relation actuelle"
+  }
+
+  if (
+    start
+    && end
+  ) {
+    return `${start} → ${end}`
+  }
+
+  if (end) {
+    return `Jusqu'à ${end}`
+  }
+
+  return start
+    ? `Depuis ${start}`
+    : "Période non renseignée"
+}
+
+
 function relationshipTypeLabel(
   value: string,
 ) {
@@ -578,6 +655,16 @@ export function Client720Page() {
     >("overview")
 
   const [
+    relationFilter,
+    setRelationFilter,
+  ] =
+    useState<
+      "all"
+      | "active"
+      | "historical"
+    >("all")
+
+  const [
     historyContext,
     setHistoryContext,
   ] =
@@ -596,6 +683,33 @@ export function Client720Page() {
           0,
           6,
         )
+
+  const visibleRelations =
+    client720?.relations.filter(
+      (
+        relation,
+      ) => {
+        if (
+          relationFilter
+          === "active"
+        ) {
+          return (
+            relation.relationship.is_active
+          )
+        }
+
+        if (
+          relationFilter
+          === "historical"
+        ) {
+          return (
+            !relation.relationship.is_active
+          )
+        }
+
+        return true
+      },
+    ) ?? []
 
   const historyActivities =
     activities.filter(
@@ -1558,15 +1672,15 @@ export function Client720Page() {
 
               <strong>
                 {
-                  client720?.relations.length
+                  client720?.affiliation_summary.total_relations
                   ?? 0
                 }
               </strong>
 
               <span>
-                relation{
+                affiliation{
                   (
-                    client720?.relations.length
+                    client720?.affiliation_summary.total_relations
                     ?? 0
                   ) > 1
                     ? "s"
@@ -1576,12 +1690,122 @@ export function Client720Page() {
             </div>
           </div>
 
+          {client720 ? (
+            <>
+              <div className="client-affiliation-summary">
+                <button
+                  type="button"
+                  className={
+                    relationFilter
+                      === "all"
+                      ? "client-affiliation-stat active"
+                      : "client-affiliation-stat"
+                  }
+                  onClick={() =>
+                    setRelationFilter(
+                      "all",
+                    )
+                  }
+                >
+                  <span>
+                    Toutes
+                  </span>
+
+                  <strong>
+                    {
+                      client720.affiliation_summary.total_relations
+                    }
+                  </strong>
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    relationFilter
+                      === "active"
+                      ? "client-affiliation-stat active"
+                      : "client-affiliation-stat"
+                  }
+                  onClick={() =>
+                    setRelationFilter(
+                      "active",
+                    )
+                  }
+                >
+                  <span>
+                    Actives
+                  </span>
+
+                  <strong>
+                    {
+                      client720.affiliation_summary.active_relations
+                    }
+                  </strong>
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    relationFilter
+                      === "historical"
+                      ? "client-affiliation-stat active"
+                      : "client-affiliation-stat"
+                  }
+                  onClick={() =>
+                    setRelationFilter(
+                      "historical",
+                    )
+                  }
+                >
+                  <span>
+                    Historiques
+                  </span>
+
+                  <strong>
+                    {
+                      client720.affiliation_summary.historical_relations
+                    }
+                  </strong>
+                </button>
+
+                <div className="client-affiliation-primary">
+                  <span>
+                    Organisation principale
+                  </span>
+
+                  <strong>
+                    {
+                      client720.organization?.name
+                      ?? "Aucune"
+                    }
+                  </strong>
+                </div>
+              </div>
+
+              {
+                client720.affiliation_summary
+                  .has_multiple_active_affiliations
+                  ? (
+                    <div className="client-affiliation-notice">
+                      <Building2
+                        size={14}
+                      />
+
+                      Ce contact possède plusieurs
+                      affiliations actives.
+                    </div>
+                  )
+                  : null
+              }
+            </>
+          ) : null}
+
           {
-            client720?.relations.length
+            visibleRelations.length
               ? (
                 <div className="client-relations-list">
                   {
-                    client720.relations.map(
+                    visibleRelations.map(
                       (
                         relation,
                       ) => (
@@ -1671,7 +1895,6 @@ export function Client720Page() {
                                 <strong>
                                   {
                                     relation.relationship.job_title
-                                    ?? client720.contact.job_title
                                     ?? "Non renseignée"
                                   }
                                 </strong>
@@ -1705,6 +1928,64 @@ export function Client720Page() {
                                       .filter(Boolean)
                                       .join(", ")
                                     || "Non renseignée"
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Période
+                                </span>
+
+                                <strong>
+                                  {
+                                    relationPeriodLabel(
+                                      relation.relationship.started_at,
+                                      relation.relationship.ended_at,
+                                      relation.relationship.is_active,
+                                    )
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Secteur
+                                </span>
+
+                                <strong>
+                                  {
+                                    relation.organization.industry
+                                    ?? "Non renseigné"
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Domaine
+                                </span>
+
+                                <strong>
+                                  {
+                                    relation.organization.domain
+                                    ?? "Non renseigné"
+                                  }
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>
+                                  Type d'organisation
+                                </span>
+
+                                <strong>
+                                  {
+                                    relation.organization.organization_type
+                                      .replaceAll(
+                                        "_",
+                                        " ",
+                                      )
                                   }
                                 </strong>
                               </div>
@@ -1751,12 +2032,25 @@ export function Client720Page() {
                   />
 
                   <strong>
-                    Aucune organisation liée
+                    {
+                      relationFilter === "all"
+                        ? "Aucune organisation liée"
+                        : "Aucune affiliation correspondante"
+                    }
                   </strong>
 
                   <span>
-                    Aucune relation Contact ↔ Organisation
-                    n'est enregistrée dans KEMS Core.
+                    {
+                      relationFilter === "all"
+                        ? (
+                          "Aucune relation Contact ↔ Organisation "
+                          + "n'est enregistrée dans KEMS Core."
+                        )
+                        : (
+                          "Aucune relation ne correspond "
+                          + "au filtre sélectionné."
+                        )
+                    }
                   </span>
                 </div>
               )

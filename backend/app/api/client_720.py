@@ -17,6 +17,7 @@ from app.models.contact_organization import (
 from app.models.organization import Organization
 from app.schemas.auth import AuthContextResponse
 from app.schemas.client_720 import (
+    Client720AffiliationSummary,
     Client720DataQuality,
     Client720Projection,
     Client720Provenance,
@@ -169,6 +170,57 @@ def list_contact_relations(
         )
 
     return relations
+
+
+def build_affiliation_summary(
+    relations: list[
+        Client720Relation
+    ],
+) -> Client720AffiliationSummary:
+    active_relations = [
+        relation
+        for relation in relations
+        if relation.relationship.is_active
+    ]
+
+    historical_relations = [
+        relation
+        for relation in relations
+        if not relation.relationship.is_active
+    ]
+
+    primary = next(
+        (
+            relation
+            for relation in relations
+            if (
+                relation.relationship.is_primary
+                and relation.relationship.is_active
+            )
+        ),
+        None,
+    )
+
+    return Client720AffiliationSummary(
+        total_relations=len(
+            relations
+        ),
+        active_relations=len(
+            active_relations
+        ),
+        historical_relations=len(
+            historical_relations
+        ),
+        primary_organization_id=(
+            primary.organization.id
+            if primary
+            else None
+        ),
+        has_multiple_active_affiliations=(
+            len(active_relations)
+            > 1
+        ),
+    )
 
 
 def build_data_quality(
@@ -328,6 +380,11 @@ def get_client_720_projection(
         contact=contact,
         organization=organization,
         relations=relations,
+        affiliation_summary=(
+            build_affiliation_summary(
+                relations
+            )
+        ),
         data_quality=(
             build_data_quality(
                 contact,

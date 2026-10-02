@@ -96,6 +96,17 @@ export type Client720Relation = {
 }
 
 
+export type Client720AffiliationSummary = {
+  total_relations: number
+  active_relations: number
+  historical_relations: number
+
+  primary_organization_id: string | null
+
+  has_multiple_active_affiliations: boolean
+}
+
+
 export type Client720DataQuality = {
   verification_status: string
   is_verified: boolean
@@ -129,6 +140,8 @@ export type Client720Projection = {
   contact: Client720Contact
   organization: Client720Organization | null
   relations: Client720Relation[]
+  affiliation_summary: Client720AffiliationSummary
+
   data_quality: Client720DataQuality
   provenance: Client720Provenance
 }
