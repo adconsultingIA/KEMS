@@ -1,3 +1,5 @@
+from app.models.auth_account import AuthAccount
+from app.models.auth_session import AuthSession
 from app.models.profile import Profile
 from app.models.organization import Organization
 from app.models.contact import Contact
@@ -13,6 +15,8 @@ from app.models.user_membership import UserMembership
 
 
 __all__ = [
+    "AuthAccount",
+    "AuthSession",
     "Profile",
     "Organization",
     "Contact",

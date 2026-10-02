@@ -2,6 +2,8 @@ from fastapi import FastAPI
 
 from app.core.database import Base, engine
 from app.models import (
+    AuthAccount,
+    AuthSession,
     Contact,
     ContactOrganization,
     IngestionRecord,
@@ -14,6 +16,7 @@ from app.models import (
     Team,
     UserMembership,
 )
+from app.api.auth import router as auth_router
 from app.api.contact_organizations import (
     router as contact_organizations_router,
 )
@@ -35,6 +38,7 @@ app = FastAPI(
 )
 
 
+app.include_router(auth_router)
 app.include_router(core_router)
 app.include_router(contacts_router)
 app.include_router(deduplication_router)
