@@ -4,12 +4,15 @@ import {
   Route,
   Routes,
 } from "react-router-dom"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import { AppShell } from "./components/layout/AppShell"
 import { ClientPortalPage } from "./pages/client/ClientPortalPage"
+import { LoginPage } from "./pages/auth/LoginPage"
 import { ActionCenterPage } from "./pages/internal/ActionCenterPage"
 import { Client720Page } from "./pages/internal/Client720Page"
 import { ContactsPage } from "./pages/internal/ContactsPage"
 import { DashboardPage } from "./pages/internal/DashboardPage"
+import { BusinessModulePage } from "./pages/internal/BusinessModulePage"
 import { PlaceholderPage } from "./pages/internal/PlaceholderPage"
 
 export default function App() {
@@ -18,16 +21,44 @@ export default function App() {
       <Routes>
         <Route
           path="/"
-          element={<Navigate to="/hub" replace />}
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/login"
+          element={<LoginPage />}
         />
 
         <Route
           path="/client"
-          element={<ClientPortalPage />}
+          element={
+            <ProtectedRoute
+              accountType="client"
+            >
+              <ClientPortalPage />
+            </ProtectedRoute>
+          }
         />
 
-        <Route path="/hub" element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
+        <Route
+          path="/hub"
+          element={
+            <ProtectedRoute
+              accountType="internal"
+            >
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route
+            index
+            element={<DashboardPage />}
+          />
 
           <Route
             path="contacts"
@@ -42,6 +73,11 @@ export default function App() {
           <Route
             path="actions"
             element={<ActionCenterPage />}
+          />
+
+          <Route
+            path="business/:context/:module"
+            element={<BusinessModulePage />}
           />
 
           <Route
@@ -89,7 +125,7 @@ export default function App() {
             element={
               <PlaceholderPage
                 title="Technologies"
-                description="Projets, intégrations et automatisations."
+                description="Clients, opportunités, projets, maintenance et opérations Technologies."
               />
             }
           />
@@ -107,7 +143,12 @@ export default function App() {
 
         <Route
           path="*"
-          element={<Navigate to="/hub" replace />}
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
         />
       </Routes>
     </BrowserRouter>

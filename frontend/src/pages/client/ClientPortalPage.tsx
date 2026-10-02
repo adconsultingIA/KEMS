@@ -12,8 +12,8 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import type { FormEvent } from "react"
-import { Link } from "react-router-dom"
 import { useActions } from "../../hooks/useActions"
+import { useAuth } from "../../hooks/useAuth"
 
 const solutions = [
   {
@@ -51,6 +51,27 @@ export function ClientPortalPage() {
     addAdviceRequest,
   } = useActions()
 
+  const {
+    auth,
+    logout,
+  } = useAuth()
+
+  const clientFirstName =
+    auth?.contact?.first_name
+    ?? "Client"
+
+  const clientLastName =
+    auth?.contact?.last_name
+    ?? ""
+
+  const clientFullName =
+    `${clientFirstName} ${clientLastName}`
+      .trim()
+
+  const clientInitials =
+    `${clientFirstName.charAt(0)}${clientLastName.charAt(0)}`
+      .toUpperCase()
+
   const [drawerOpen, setDrawerOpen] =
     useState(false)
 
@@ -84,7 +105,7 @@ export function ClientPortalPage() {
     event.preventDefault()
 
     const result = addAdviceRequest({
-      entity: "Jean Dupont",
+      entity: clientFullName,
       domain,
       subject,
       description,
@@ -109,25 +130,28 @@ export function ClientPortalPage() {
         </div>
 
         <div className="client-topbar-actions">
-          <Link
-            to="/hub"
-            className="experience-switch hub-switch"
+          <button
+            type="button"
+            className="experience-switch hub-switch client-logout"
+            onClick={() => {
+              void logout()
+            }}
           >
             <ArrowLeft size={14} />
 
             <div>
-              <strong>Hub 720°</strong>
-              <span>Espace interne</span>
+              <strong>Déconnexion</strong>
+              <span>Quitter mon espace</span>
             </div>
-          </Link>
+          </button>
 
           <div className="client-profile">
             <div className="avatar small">
-              JD
+              {clientInitials}
             </div>
 
             <div>
-              <strong>Jean Dupont</strong>
+              <strong>{clientFullName}</strong>
               <span>Client KEMS</span>
             </div>
           </div>
@@ -146,7 +170,7 @@ export function ClientPortalPage() {
             Client 360°
           </span>
 
-          <h1>Bonjour Jean.</h1>
+          <h1>Bonjour {clientFirstName}.</h1>
 
           <p>
             Retrouvez vos solutions, dossiers
