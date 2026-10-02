@@ -5,7 +5,6 @@ import {
   ArrowUp,
   Calculator,
   CheckCircle2,
-  CircleCheck,
   Clock3,
   Copy,
   FileText,
