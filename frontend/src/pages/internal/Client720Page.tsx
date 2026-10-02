@@ -5,15 +5,239 @@ import {
   CircleCheck,
   Clock3,
   FileText,
+  RefreshCw,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react"
-import { Link } from "react-router-dom"
+
+import {
+  useEffect,
+  useState,
+} from "react"
+
+import {
+  Link,
+  useParams,
+} from "react-router-dom"
 import { MetricCard } from "../../components/ui/MetricCard"
 import { StatusBadge } from "../../components/ui/StatusBadge"
-import { timeline } from "../../data/demo"
+import { useAuth } from "../../hooks/useAuth"
+import {
+  listActivitiesRequest,
+} from "../../services/activitiesApi"
+import type {
+  ApiActivity,
+} from "../../services/activitiesApi"
+
+function activityLabel(
+  eventType: string,
+) {
+  const labels:
+    Record<
+      string,
+      string
+    > = {
+    "action.created":
+      "Action créée",
+    "action.assigned":
+      "Action assignée",
+    "action.reassigned":
+      "Action réassignée",
+    "action.started":
+      "Traitement démarré",
+    "action.blocked":
+      "Action bloquée",
+    "action.completed":
+      "Action terminée",
+    "action.reopened":
+      "Action réouverte",
+    "action.cancelled":
+      "Action annulée",
+  }
+
+  return (
+    labels[eventType]
+    ?? eventType
+  )
+}
+
+
+function contextLabel(
+  context: string,
+) {
+  const labels:
+    Record<
+      string,
+      string
+    > = {
+    direction:
+      "Direction",
+    commercial:
+      "Commercial",
+    assurance:
+      "Assurance",
+    investissement:
+      "Investissement",
+    fiduciaire:
+      "Fiduciaire",
+    technologies:
+      "Technologies",
+    core:
+      "KEMS Core",
+    client:
+      "Client 360°",
+  }
+
+  return (
+    labels[context]
+    ?? context
+  )
+}
+
+
+function formatActivityDate(
+  value: string,
+) {
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-CH",
+    {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date)
+}
+
 
 export function Client720Page() {
+  const {
+    contactId,
+  } = useParams()
+
+  const {
+    token,
+  } = useAuth()
+
+  const [
+    activities,
+    setActivities,
+  ] =
+    useState<
+      ApiActivity[]
+    >([])
+
+  const [
+    activitiesLoading,
+    setActivitiesLoading,
+  ] =
+    useState(false)
+
+  const [
+    activitiesError,
+    setActivitiesError,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+
+  useEffect(
+    () => {
+      if (
+        !token
+        || !contactId
+      ) {
+        return
+      }
+
+      let cancelled = false
+
+      void Promise.resolve()
+        .then(
+          () => {
+            if (!cancelled) {
+              setActivitiesLoading(
+                true,
+              )
+            }
+
+            return listActivitiesRequest(
+              token,
+              {
+                contactId,
+                limit: 50,
+              },
+            )
+          },
+        )
+        .then(
+          (
+            result,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setActivities(
+              result,
+            )
+
+            setActivitiesError(
+              null,
+            )
+          },
+        )
+        .catch(
+          (
+            caught,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setActivitiesError(
+              caught instanceof Error
+                ? caught.message
+                : (
+                  "Impossible de charger "
+                  + "la timeline."
+                ),
+            )
+          },
+        )
+        .finally(
+          () => {
+            if (!cancelled) {
+              setActivitiesLoading(
+                false,
+              )
+            }
+          },
+        )
+
+      return () => {
+        cancelled = true
+      }
+    },
+    [
+      contactId,
+      token,
+    ],
+  )
+
+
   return (
     <div className="page-stack">
       <Link to="/hub/contacts" className="back-link">
@@ -182,25 +406,95 @@ export function Client720Page() {
             </div>
           </div>
 
-          <div className="timeline">
-            {timeline.map((item) => (
-              <div
-                className="timeline-item"
-                key={`${item.date}-${item.title}`}
-              >
-                <div className="timeline-dot" />
-                <div>
-                  <span className="timeline-date">
-                    {item.date}
-                  </span>
-                  <strong>{item.title}</strong>
-                  <p>
-                    {item.domain} · {item.detail}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {activitiesLoading ? (
+            <div className="timeline-state">
+              <RefreshCw
+                size={18}
+              />
+
+              <span>
+                Chargement de l'activité...
+              </span>
+            </div>
+          ) : activitiesError ? (
+            <div className="timeline-state error">
+              <span>
+                {activitiesError}
+              </span>
+            </div>
+          ) : activities.length ? (
+            <div className="timeline">
+              {activities.map(
+                (
+                  activity,
+                ) => (
+                  <div
+                    className={
+                      `timeline-item timeline-context-${activity.context}`
+                    }
+                    key={
+                      activity.id
+                    }
+                  >
+                    <div className="timeline-dot" />
+
+                    <div>
+                      <span className="timeline-date">
+                        {
+                          formatActivityDate(
+                            activity.created_at,
+                          )
+                        }
+                      </span>
+
+                      <strong>
+                        {
+                          activityLabel(
+                            activity.event_type,
+                          )
+                        }
+                      </strong>
+
+                      <p>
+                        {
+                          contextLabel(
+                            activity.context,
+                          )
+                        }
+                        {" · "}
+                        {
+                          activity.title
+                        }
+                      </p>
+
+                      {
+                        activity.description
+                          ? (
+                            <small className="timeline-detail">
+                              {
+                                activity.description
+                              }
+                            </small>
+                          )
+                          : null
+                      }
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <div className="timeline-state">
+              <CircleCheck
+                size={20}
+              />
+
+              <span>
+                Aucune activité réelle
+                enregistrée pour ce client.
+              </span>
+            </div>
+          )}
         </div>
       </section>
     </div>
