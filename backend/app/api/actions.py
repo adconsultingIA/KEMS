@@ -33,6 +33,7 @@ from app.schemas.auth import (
 )
 from app.services.activity_service import (
     record_action_created_activity,
+    record_action_lifecycle_activities,
 )
 from app.services.auth_service import (
     projection_from_unit,
@@ -675,6 +676,14 @@ def update_action(
         exclude_unset=True
     )
 
+    previous_owner_profile_id = (
+        action.owner_profile_id
+    )
+
+    previous_status = (
+        action.status
+    )
+
     target_context = data.get(
         "context",
         action.context,
@@ -776,6 +785,22 @@ def update_action(
             key,
             value,
         )
+
+    db.flush()
+
+    record_action_lifecycle_activities(
+        db,
+        action=action,
+        previous_owner_profile_id=(
+            previous_owner_profile_id
+        ),
+        previous_status=(
+            previous_status
+        ),
+        actor_profile_id=(
+            auth.profile.id
+        ),
+    )
 
     db.commit()
     db.refresh(action)
