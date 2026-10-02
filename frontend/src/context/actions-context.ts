@@ -1,19 +1,11 @@
-import { createContext } from "react"
+import {
+  createContext,
+} from "react"
 
-export type KemsAction = {
-  id: string
-  title: string
-  entity: string
-  owner: string
-  priority: "Haute" | "Moyenne" | "Basse"
-  due: string
-  source: string
-  context: string
-  status: "todo" | "done"
-  reference?: string
-  description?: string
-  createdAt?: string
-}
+import type {
+  ApiAction,
+} from "../services/actionsApi"
+
 
 export type AdviceRequestInput = {
   entity: string
@@ -23,18 +15,35 @@ export type AdviceRequestInput = {
   urgency: string
 }
 
-export type ActionsContextValue = {
-  actions: KemsAction[]
-  addAdviceRequest: (
-    input: AdviceRequestInput,
-  ) => {
-    reference: string
-    action: KemsAction
-  }
-  completeAction: (id: string) => void
+
+export type AdviceRequestResult = {
+  reference: string
 }
 
+
+export type ActionsContextValue = {
+  actions: ApiAction[]
+
+  loading: boolean
+  error: string | null
+
+  refreshActions:
+    () => Promise<void>
+
+  completeAction:
+    (
+      id: string,
+    ) => Promise<void>
+
+  addAdviceRequest:
+    (
+      input:
+        AdviceRequestInput,
+    ) => AdviceRequestResult
+}
+
+
 export const ActionsContext =
-  createContext<ActionsContextValue | null>(
-    null,
-  )
+  createContext<
+    ActionsContextValue | null
+  >(null)

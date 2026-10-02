@@ -238,7 +238,11 @@ export function AppShell() {
           </div>
 
           <div className="topbar-actions">
-            <div className="current-context-pill">
+            <div
+              className={
+                `current-context-pill context-${activeContext}`
+              }
+            >
               <definition.icon
                 size={15}
               />

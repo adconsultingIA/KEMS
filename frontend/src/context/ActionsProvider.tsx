@@ -1,157 +1,328 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react"
 
+import type {
+  ReactNode,
+} from "react"
+
 import {
   ActionsContext,
   type AdviceRequestInput,
-  type KemsAction,
 } from "./actions-context"
 
-const initialActions: KemsAction[] = [
-  {
-    id: "act-1",
-    title: "Renouvellement Assurance",
-    entity: "Jean Dupont",
-    owner: "Naomie Nassara",
-    priority: "Haute",
-    due: "12 oct. 2026",
-    source: "Assurance",
-    context: "Client 720°",
-    status: "todo",
-  },
-  {
-    id: "act-2",
-    title: "Doublon potentiel à contrôler",
-    entity: "Marc Durand",
-    owner: "Parfait ADJANOR",
-    priority: "Moyenne",
-    due: "Aujourd'hui",
-    source: "Core",
-    context: "Data Quality",
-    status: "todo",
-  },
-  {
-    id: "act-3",
-    title: "Demande de conseil reçue",
-    entity: "Sophie Martin",
-    owner: "Euloge Santos",
-    priority: "Moyenne",
-    due: "Demain",
-    source: "Client 360°",
-    context: "Investissement",
-    status: "todo",
-  },
-]
+import {
+  listActionsRequest,
+  updateActionRequest,
+} from "../services/actionsApi"
 
-const STORAGE_KEY = "kems-demo-actions"
+import type {
+  ApiAction,
+} from "../services/actionsApi"
+
+import {
+  useAuth,
+} from "../hooks/useAuth"
+
+import {
+  useProjection,
+} from "../hooks/useProjection"
+
+
+const CLIENT_REQUEST_KEY =
+  "kems-client-demo-requests"
+
 
 function generateReference() {
-  const timestamp = Date.now()
-    .toString()
-    .slice(-6)
+  const timestamp =
+    Date.now()
+      .toString()
+      .slice(-6)
 
   return `KEMS-REQ-${timestamp}`
 }
 
+
 export function ActionsProvider({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
-  const [actions, setActions] =
-    useState<KemsAction[]>(() => {
-      const stored =
-        localStorage.getItem(STORAGE_KEY)
+  const {
+    auth,
+    token,
+  } = useAuth()
 
-      if (!stored) {
-        return initialActions
-      }
+  const {
+    activeContext,
+  } = useProjection()
 
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return initialActions
-      }
-    })
+  const [
+    actions,
+    setActions,
+  ] =
+    useState<ApiAction[]>([])
 
-  useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(actions),
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(false)
+
+  const [
+    error,
+    setError,
+  ] =
+    useState<string | null>(
+      null,
     )
-  }, [actions])
+
+
+  const refreshActions =
+    useCallback(
+      async () => {
+        if (
+          !token
+          || auth?.account_type
+            !== "internal"
+        ) {
+          setActions([])
+          setError(null)
+
+          return
+        }
+
+        try {
+          setLoading(true)
+          setError(null)
+
+          const context =
+            activeContext
+              === "direction"
+              ? undefined
+              : activeContext
+
+          const result =
+            await listActionsRequest(
+              token,
+              context,
+            )
+
+          setActions(
+            result,
+          )
+        } catch (
+          caught
+        ) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : (
+                "Impossible de charger "
+                + "les actions."
+              ),
+          )
+        } finally {
+          setLoading(false)
+        }
+      },
+      [
+        activeContext,
+        auth?.account_type,
+        token,
+      ],
+    )
+
+
+  useEffect(
+    () => {
+      if (
+        !token
+        || auth?.account_type
+          !== "internal"
+      ) {
+        return
+      }
+
+      let cancelled = false
+
+      const context =
+        activeContext
+          === "direction"
+          ? undefined
+          : activeContext
+
+      void listActionsRequest(
+        token,
+        context,
+      )
+        .then(
+          (
+            result,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setActions(
+              result,
+            )
+
+            setError(null)
+          },
+        )
+        .catch(
+          (
+            caught,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setError(
+              caught instanceof Error
+                ? caught.message
+                : (
+                  "Impossible de charger "
+                  + "les actions."
+                ),
+            )
+          },
+        )
+        .finally(
+          () => {
+            if (!cancelled) {
+              setLoading(false)
+            }
+          },
+        )
+
+      return () => {
+        cancelled = true
+      }
+    },
+    [
+      activeContext,
+      auth?.account_type,
+      token,
+    ],
+  )
+
+
+  const completeAction =
+    useCallback(
+      async (
+        id: string,
+      ) => {
+        if (!token) {
+          return
+        }
+
+        const updated =
+          await updateActionRequest(
+            token,
+            id,
+            {
+              status: "done",
+            },
+          )
+
+        setActions(
+          (
+            current,
+          ) =>
+            current.map(
+              (
+                action,
+              ) =>
+                action.id
+                  === updated.id
+                  ? updated
+                  : action,
+            ),
+        )
+      },
+      [
+        token,
+      ],
+    )
+
 
   function addAdviceRequest(
-    input: AdviceRequestInput,
+    input:
+      AdviceRequestInput,
   ) {
-    const reference = generateReference()
+    const reference =
+      generateReference()
 
-    const priority: KemsAction["priority"] =
-      input.urgency === "urgent"
-        ? "Haute"
-        : input.urgency === "normal"
-          ? "Moyenne"
-          : "Basse"
+    const stored =
+      localStorage.getItem(
+        CLIENT_REQUEST_KEY,
+      )
 
-    const action: KemsAction = {
-      id: `action-${Date.now()}`,
-      title:
-        input.subject ||
-        `Demande conseil ${input.domain}`,
-      entity: input.entity,
-      owner: "À assigner",
-      priority,
-      due:
-        input.urgency === "urgent"
-          ? "Aujourd'hui"
-          : "À planifier",
-      source: "Client 360°",
-      context: input.domain,
-      status: "todo",
-      reference,
-      description: input.description,
-      createdAt:
-        new Date().toLocaleString("fr-CH"),
+    let current:
+      unknown[] = []
+
+    if (stored) {
+      try {
+        current =
+          JSON.parse(
+            stored,
+          )
+      } catch {
+        current = []
+      }
     }
 
-    setActions((current) => [
-      action,
-      ...current,
-    ])
+    localStorage.setItem(
+      CLIENT_REQUEST_KEY,
+      JSON.stringify(
+        [
+          {
+            reference,
+            ...input,
+            createdAt:
+              new Date()
+                .toISOString(),
+          },
+          ...current,
+        ],
+      ),
+    )
 
     return {
       reference,
-      action,
     }
   }
 
-  function completeAction(id: string) {
-    setActions((current) =>
-      current.map((action) =>
-        action.id === id
-          ? {
-              ...action,
-              status: "done",
-            }
-          : action,
-      ),
-    )
-  }
 
-  const value = useMemo(
-    () => ({
-      actions,
-      addAdviceRequest,
-      completeAction,
-    }),
-    [actions],
-  )
+  const value =
+    useMemo(
+      () => ({
+        actions,
+        loading,
+        error,
+        refreshActions,
+        completeAction,
+        addAdviceRequest,
+      }),
+      [
+        actions,
+        loading,
+        error,
+        refreshActions,
+        completeAction,
+      ],
+    )
+
 
   return (
-    <ActionsContext.Provider value={value}>
+    <ActionsContext.Provider
+      value={value}
+    >
       {children}
     </ActionsContext.Provider>
   )

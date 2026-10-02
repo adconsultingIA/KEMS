@@ -1,201 +1,992 @@
 import {
+  Activity,
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Calculator,
   CheckCircle2,
   CircleCheck,
   Clock3,
-  Filter,
+  Copy,
+  FileText,
+  Handshake,
+  LifeBuoy,
+  Minus,
+  Package,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  UserRound,
   Workflow,
 } from "lucide-react"
-import { StatusBadge } from "../../components/ui/StatusBadge"
-import { useActions } from "../../hooks/useActions"
+
+import {
+  useMemo,
+  useState,
+} from "react"
+
+import {
+  StatusBadge,
+} from "../../components/ui/StatusBadge"
+
+import {
+  useActions,
+} from "../../hooks/useActions"
+
+import {
+  useAuth,
+} from "../../hooks/useAuth"
+
+import {
+  useProjection,
+} from "../../hooks/useProjection"
+
+import type {
+  ActionPriority,
+  ActionStatus,
+} from "../../services/actionsApi"
+
+
+function priorityIcon(
+  priority: ActionPriority,
+) {
+  if (
+    priority === "critical"
+    || priority === "high"
+  ) {
+    return ArrowUp
+  }
+
+  if (
+    priority === "low"
+  ) {
+    return ArrowDown
+  }
+
+  return Minus
+}
+
+
+function contextIcon(
+  context: string,
+) {
+  const icons = {
+    direction:
+      Workflow,
+    commercial:
+      Handshake,
+    assurance:
+      ShieldCheck,
+    investissement:
+      TrendingUp,
+    fiduciaire:
+      Calculator,
+    technologies:
+      Sparkles,
+    core:
+      Workflow,
+    client:
+      UserRound,
+  }
+
+  return (
+    icons[
+      context as keyof typeof icons
+    ]
+    ?? Workflow
+  )
+}
+
+
+function sourceIcon(
+  sourceEntityType:
+    string | null,
+  sourceType:
+    string,
+) {
+  const key =
+    (
+      sourceEntityType
+      ?? sourceType
+      ?? ""
+    )
+      .trim()
+      .toLowerCase()
+
+  if (
+    key.includes("ticket")
+  ) {
+    return LifeBuoy
+  }
+
+  if (
+    key.includes("quote")
+    || key.includes("devis")
+  ) {
+    return FileText
+  }
+
+  if (
+    key.includes("deliver")
+    || key.includes("livrable")
+  ) {
+    return Package
+  }
+
+  if (
+    key.includes("renew")
+    || key.includes("renouvel")
+  ) {
+    return Activity
+  }
+
+  if (
+    key.includes("opportun")
+  ) {
+    return TrendingUp
+  }
+
+  if (
+    key.includes("duplicate")
+    || key.includes("doublon")
+  ) {
+    return Copy
+  }
+
+  return Workflow
+}
+
+
+function priorityLabel(
+  priority:
+    ActionPriority,
+) {
+  const labels = {
+    low: "Basse",
+    medium: "Moyenne",
+    high: "Haute",
+    critical: "Critique",
+  }
+
+  return labels[
+    priority
+  ]
+}
+
+
+function priorityTone(
+  priority:
+    ActionPriority,
+) {
+  if (
+    priority
+      === "critical"
+  ) {
+    return "warning"
+  }
+
+  if (
+    priority
+      === "high"
+  ) {
+    return "warning"
+  }
+
+  return "info"
+}
+
+
+function statusLabel(
+  status:
+    ActionStatus,
+) {
+  const labels = {
+    todo: "À faire",
+    in_progress:
+      "En cours",
+    blocked: "Bloquée",
+    done: "Terminée",
+    cancelled:
+      "Annulée",
+  }
+
+  return labels[
+    status
+  ]
+}
+
+
+function statusTone(
+  status: ActionStatus,
+) {
+  const tones = {
+    todo: "default",
+    in_progress: "info",
+    blocked: "warning",
+    done: "success",
+    cancelled: "default",
+  } as const
+
+  return tones[
+    status
+  ]
+}
+
+
+function contextLabel(
+  context: string,
+) {
+  const labels:
+    Record<
+      string,
+      string
+    > = {
+    direction:
+      "Direction",
+    commercial:
+      "Commercial",
+    assurance:
+      "Assurance",
+    investissement:
+      "Investissement",
+    fiduciaire:
+      "Fiduciaire",
+    technologies:
+      "Technologies",
+    core:
+      "KEMS Core",
+    client:
+      "Client 360°",
+  }
+
+  return (
+    labels[
+      context
+    ]
+    ?? context
+  )
+}
+
+
+function formatDueDate(
+  value:
+    string | null,
+) {
+  if (!value) {
+    return "Non planifiée"
+  }
+
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl
+    .DateTimeFormat(
+      "fr-CH",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      },
+    )
+    .format(date)
+}
+
 
 export function ActionCenterPage() {
   const {
     actions,
+    loading,
+    error,
+    refreshActions,
     completeAction,
   } = useActions()
 
-  const openActions = actions.filter(
-    (action) =>
-      action.status === "todo",
-  )
+  const {
+    auth,
+  } = useAuth()
+
+  const {
+    activeContext,
+  } = useProjection()
+
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] =
+    useState<
+      "all"
+      | "open"
+      | ActionStatus
+    >(
+      "all",
+    )
+
+  const [
+    priorityFilter,
+    setPriorityFilter,
+  ] =
+    useState<
+      "all"
+      | ActionPriority
+    >(
+      "all",
+    )
+
+  const [
+    mineOnly,
+    setMineOnly,
+  ] =
+    useState(false)
+
+
+  const visibleActions =
+    useMemo(
+      () => {
+        return actions
+          .filter(
+            (
+              action,
+            ) => {
+              if (
+                statusFilter
+                  === "all"
+              ) {
+                return true
+              }
+
+              if (
+                statusFilter
+                  === "open"
+              ) {
+                return ![
+                  "done",
+                  "cancelled",
+                ].includes(
+                  action.status,
+                )
+              }
+
+              return (
+                action.status
+                === statusFilter
+              )
+            },
+          )
+          .filter(
+            (
+              action,
+            ) =>
+              priorityFilter
+                === "all"
+              || action.priority
+                === priorityFilter,
+          )
+          .filter(
+            (
+              action,
+            ) =>
+              !mineOnly
+              || action
+                .owner_profile_id
+                === auth?.profile?.id,
+          )
+      },
+      [
+        actions,
+        auth?.profile?.id,
+        mineOnly,
+        priorityFilter,
+        statusFilter,
+      ],
+    )
+
+
+  const openActions =
+    actions.filter(
+      (
+        action,
+      ) =>
+        ![
+          "done",
+          "cancelled",
+        ].includes(
+          action.status,
+        ),
+    )
+
+  const criticalActions =
+    openActions.filter(
+      (
+        action,
+      ) =>
+        action.priority
+          === "critical",
+    )
+
+  const highActions =
+    openActions.filter(
+      (
+        action,
+      ) =>
+        action.priority
+          === "high",
+    )
+
+  const mineActions =
+    openActions.filter(
+      (
+        action,
+      ) =>
+        action.owner_profile_id
+          === auth?.profile?.id,
+    )
+
 
   return (
     <div className="page-stack">
+
       <div className="page-header with-actions">
+
         <div>
           <span className="eyebrow">
-            Transversal
+            Cockpit opérationnel
           </span>
 
-          <h1>Action Center</h1>
+          <h1>
+            Action Center
+          </h1>
 
           <p>
-            Toutes les actions importantes,
-            quel que soit leur domaine d'origine.
+            {activeContext
+              === "direction"
+              ? (
+                "Vue transverse de toutes "
+                + "les actions KEMS."
+              )
+              : (
+                "Projection opérationnelle "
+                + `du contexte ${
+                  contextLabel(
+                    activeContext,
+                  )
+                }.`
+              )}
           </p>
         </div>
 
-        <button className="button secondary">
-          <Filter size={17} />
-          Filtrer
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() =>
+            void refreshActions()
+          }
+          disabled={
+            loading
+          }
+        >
+          <RefreshCw
+            size={17}
+          />
+
+          Actualiser
         </button>
       </div>
+
 
       <div className="action-center-summary">
-        <div>
-          <span>À traiter</span>
-          <strong>
-            {openActions.length}
-          </strong>
-        </div>
 
         <div>
-          <span>Haute priorité</span>
+          <span>
+            À traiter
+          </span>
+
           <strong>
             {
-              openActions.filter(
-                (action) =>
-                  action.priority === "Haute",
-              ).length
+              openActions
+                .length
             }
           </strong>
         </div>
 
         <div>
-          <span>Demandes clients</span>
+          <span>
+            Critiques
+          </span>
+
           <strong>
             {
-              openActions.filter(
-                (action) =>
-                  action.source ===
-                  "Client 360°",
-              ).length
+              criticalActions
+                .length
             }
           </strong>
         </div>
+
+        <div>
+          <span>
+            Haute priorité
+          </span>
+
+          <strong>
+            {
+              highActions
+                .length
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Mes actions
+          </span>
+
+          <strong>
+            {
+              mineActions
+                .length
+            }
+          </strong>
+        </div>
+
       </div>
 
-      <div className="section-tabs">
-        <button className="tab active">
-          À faire
-        </button>
-        <button className="tab">
-          À valider
-        </button>
-        <button className="tab">
-          À relancer
-        </button>
-        <button className="tab">
-          À vérifier
-        </button>
-        <button className="tab">
-          À renouveler
-        </button>
-      </div>
 
-      {openActions.length ? (
-        <section className="action-board">
-          {openActions.map((action) => (
-            <article
-              className="action-card"
-              key={action.id}
+      <section className="panel action-filter-panel">
+
+        <div className="action-filter-row">
+
+          <div className="action-filter-group">
+
+            <span>
+              Statut
+            </span>
+
+            <select
+              value={
+                statusFilter
+              }
+              onChange={
+                (
+                  event,
+                ) =>
+                  setStatusFilter(
+                    event.target
+                      .value as
+                      | "all"
+                      | "open"
+                      | ActionStatus,
+                  )
+              }
             >
-              <div className="action-card-top">
-                <div className="action-icon large">
-                  <Workflow size={19} />
-                </div>
+              <option value="all">
+                Toutes
+              </option>
 
-                <StatusBadge
-                  tone={
-                    action.priority === "Haute"
-                      ? "warning"
-                      : "info"
-                  }
-                >
-                  {action.priority}
-                </StatusBadge>
-              </div>
+              <option value="open">
+                Ouvertes
+              </option>
 
-              <h3>{action.title}</h3>
-              <p>{action.entity}</p>
+              <option value="todo">
+                À faire
+              </option>
 
-              {action.reference ? (
-                <div className="request-reference">
-                  {action.reference}
-                </div>
-              ) : null}
+              <option value="in_progress">
+                En cours
+              </option>
 
-              <div className="action-details">
-                <div>
-                  <span>Responsable</span>
-                  <strong>
-                    {action.owner}
-                  </strong>
-                </div>
+              <option value="blocked">
+                Bloquées
+              </option>
 
-                <div>
-                  <span>Échéance</span>
-                  <strong>
-                    {action.due}
-                  </strong>
-                </div>
+              <option value="done">
+                Terminées
+              </option>
 
-                <div>
-                  <span>Source</span>
-                  <strong>
-                    {action.source}
-                  </strong>
-                </div>
+              <option value="cancelled">
+                Annulées
+              </option>
+            </select>
 
-                <div>
-                  <span>Contexte</span>
-                  <strong>
-                    {action.context}
-                  </strong>
-                </div>
-              </div>
+          </div>
 
-              {action.description ? (
-                <div className="action-description">
-                  {action.description}
-                </div>
-              ) : null}
 
-              <div className="action-card-footer">
-                <button className="button ghost">
-                  <Clock3 size={16} />
-                  Reporter
-                </button>
+          <div className="action-filter-group">
 
-                <button
-                  className="button primary"
-                  onClick={() =>
-                    completeAction(
-                      action.id,
-                    )
-                  }
-                >
-                  <CircleCheck size={16} />
-                  Traiter
-                </button>
-              </div>
-            </article>
-          ))}
+            <span>
+              Priorité
+            </span>
+
+            <select
+              value={
+                priorityFilter
+              }
+              onChange={
+                (
+                  event,
+                ) =>
+                  setPriorityFilter(
+                    event.target
+                      .value as
+                      | "all"
+                      | ActionPriority,
+                  )
+              }
+            >
+              <option value="all">
+                Toutes
+              </option>
+
+              <option value="critical">
+                Critique
+              </option>
+
+              <option value="high">
+                Haute
+              </option>
+
+              <option value="medium">
+                Moyenne
+              </option>
+
+              <option value="low">
+                Basse
+              </option>
+            </select>
+
+          </div>
+
+
+          <label className="action-mine-filter">
+
+            <input
+              type="checkbox"
+              checked={
+                mineOnly
+              }
+              onChange={
+                (
+                  event,
+                ) =>
+                  setMineOnly(
+                    event.target
+                      .checked,
+                  )
+              }
+            />
+
+            <span>
+              Mes actions uniquement
+            </span>
+
+          </label>
+
+        </div>
+
+      </section>
+
+
+      {error ? (
+        <section className="panel action-error-panel">
+
+          <AlertTriangle
+            size={22}
+          />
+
+          <div>
+            <strong>
+              Impossible de charger
+              l'Action Center
+            </strong>
+
+            <p>
+              {error}
+            </p>
+          </div>
+
         </section>
-      ) : (
+      ) : null}
+
+
+      {loading ? (
         <section className="panel empty-panel">
-          <CheckCircle2 size={34} />
+
+          <RefreshCw
+            size={30}
+          />
 
           <strong>
-            Aucune action en attente
+            Chargement des actions...
+          </strong>
+
+        </section>
+      ) : visibleActions.length ? (
+
+        <section className="action-board">
+
+          {visibleActions.map(
+            (
+              action,
+            ) => {
+              const PriorityIcon =
+                priorityIcon(
+                  action.priority,
+                )
+
+              const ContextIcon =
+                contextIcon(
+                  action.context,
+                )
+
+              const SourceIcon =
+                sourceIcon(
+                  action.source_entity_type,
+                  action.source_type,
+                )
+
+              return (
+              <article
+                className={
+                  `action-card action-context-${action.context}`
+                }
+                key={
+                  action.id
+                }
+              >
+
+                <div className="action-card-top">
+
+                  <div
+                    className="action-icon large action-source-icon"
+                    title={
+                      action.source_entity_type
+                      ?? action.source_type
+                    }
+                  >
+                    <SourceIcon
+                      size={19}
+                    />
+                  </div>
+
+                  <div className="badge-row">
+
+                    <StatusBadge
+                      tone={
+                        priorityTone(
+                          action.priority,
+                        )
+                      }
+                    >
+                      <span className="action-badge-content">
+                        <PriorityIcon
+                          size={11}
+                        />
+
+                        {
+                          priorityLabel(
+                            action.priority,
+                          )
+                        }
+                      </span>
+                    </StatusBadge>
+
+                    <StatusBadge
+                      tone={
+                        statusTone(
+                          action.status,
+                        )
+                      }
+                    >
+                      {
+                        statusLabel(
+                          action.status,
+                        )
+                      }
+                    </StatusBadge>
+
+                  </div>
+
+                </div>
+
+
+                <div className="action-business-line">
+                  <span
+                    className={
+                      `action-context-pill action-context-pill-${action.context}`
+                    }
+                  >
+                    <ContextIcon
+                      size={12}
+                    />
+
+                    {
+                      contextLabel(
+                        action.context,
+                      )
+                    }
+                  </span>
+                </div>
+
+
+                <h3>
+                  {action.title}
+                </h3>
+
+
+                {action.description ? (
+                  <div className="action-description">
+                    {
+                      action.description
+                    }
+                  </div>
+                ) : null}
+
+
+                <div className="action-details">
+
+                  <div>
+                    <span>
+                      Contexte
+                    </span>
+
+                    <strong>
+                      {
+                        contextLabel(
+                          action.context,
+                        )
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Échéance
+                    </span>
+
+                    <strong>
+                      {
+                        formatDueDate(
+                          action.due_at,
+                        )
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Source
+                    </span>
+
+                    <strong>
+                      {
+                        action.source_type
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Assignation
+                    </span>
+
+                    <strong>
+                      {
+                        action
+                          .owner_profile_id
+                          === auth
+                            ?.profile
+                            ?.id
+                          ? "Moi"
+                          : action
+                              .owner_profile_id
+                            ? "Collaborateur"
+                            : "Non assignée"
+                      }
+                    </strong>
+                  </div>
+
+                </div>
+
+
+                <div className="action-card-footer">
+
+                  <button
+                    type="button"
+                    className="button ghost"
+                    disabled
+                    title="Disponible dans un prochain jalon"
+                  >
+                    <Clock3
+                      size={16}
+                    />
+
+                    Reporter
+                  </button>
+
+
+                  {![
+                    "done",
+                    "cancelled",
+                  ].includes(
+                    action.status,
+                  ) ? (
+                    <button
+                      type="button"
+                      className="button primary"
+                      onClick={() =>
+                        void completeAction(
+                          action.id,
+                        )
+                      }
+                    >
+                      <CircleCheck
+                        size={16}
+                      />
+
+                      Traiter
+                    </button>
+                  ) : null}
+
+                </div>
+
+              </article>
+              )
+            },
+          )}
+
+        </section>
+
+      ) : (
+
+        <section className="panel empty-panel">
+
+          <CheckCircle2
+            size={34}
+          />
+
+          <strong>
+            Aucune action
+            dans cette vue
           </strong>
 
           <p>
-            Toutes les actions KEMS ont été
-            traitées.
+            Modifie les filtres
+            ou change de contexte.
           </p>
+
         </section>
       )}
+
     </div>
   )
 }

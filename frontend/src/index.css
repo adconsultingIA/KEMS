@@ -4269,3 +4269,572 @@ h3 {
     gap: 2px;
   }
 }
+
+/* =========================================================
+   ACTION CENTER — BACKEND CONNECTED COCKPIT
+   ========================================================= */
+
+.action-filter-panel {
+  padding:
+    18px 20px;
+}
+
+.action-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.action-filter-group {
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.action-filter-group > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(
+    --text-muted,
+    #667085
+  );
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.action-filter-group select {
+  height: 42px;
+  min-width: 180px;
+  padding:
+    0 34px
+    0 12px;
+
+  border-radius: 12px;
+
+  border:
+    1px solid
+    rgba(
+      15,
+      23,
+      42,
+      .11
+    );
+
+  background: #fff;
+
+  color:
+    #172033;
+
+  font: inherit;
+}
+
+.action-mine-filter {
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding:
+    0 14px;
+
+  border-radius: 12px;
+
+  border:
+    1px solid
+    rgba(
+      15,
+      23,
+      42,
+      .09
+    );
+
+  background:
+    rgba(
+      248,
+      250,
+      252,
+      .82
+    );
+
+  cursor: pointer;
+}
+
+.action-mine-filter input {
+  width: 16px;
+  height: 16px;
+}
+
+.action-mine-filter span {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.action-error-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  border-color:
+    rgba(
+      220,
+      38,
+      38,
+      .18
+    );
+
+  background:
+    rgba(
+      254,
+      242,
+      242,
+      .58
+    );
+}
+
+.action-error-panel strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.action-error-panel p {
+  margin: 0;
+}
+
+.action-card .badge-row {
+  margin: 0;
+  justify-content: flex-end;
+}
+
+.action-card-footer button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+@media (
+  max-width: 760px
+) {
+  .action-filter-row {
+    align-items: stretch;
+  }
+
+  .action-filter-group,
+  .action-filter-group select,
+  .action-mine-filter {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ACTION CENTER — BUSINESS CONTEXT VISUAL LANGUAGE
+   ========================================================= */
+
+/*
+   Convention KEMS
+   ---------------------------------------------------------
+   Bord gauche / capsule = contexte métier
+   Badge 1               = priorité
+   Badge 2               = statut
+   ---------------------------------------------------------
+*/
+
+.action-card {
+  --action-context-color: #6c4cff;
+  position: relative;
+  border-left:
+    3px solid
+    var(--action-context-color);
+}
+
+/* Direction */
+.action-context-direction {
+  --action-context-color:
+    #20242e;
+}
+
+/* Commercial */
+.action-context-commercial {
+  --action-context-color:
+    #8b5cf6;
+}
+
+/* Assurance */
+.action-context-assurance {
+  --action-context-color:
+    #d98a18;
+}
+
+/* Investissement */
+.action-context-investissement {
+  --action-context-color:
+    #3e6fe8;
+}
+
+/* Fiduciaire */
+.action-context-fiduciaire {
+  --action-context-color:
+    #a56b1f;
+}
+
+/* Technologies */
+.action-context-technologies {
+  --action-context-color:
+    #6c4cff;
+}
+
+/* KEMS Core */
+.action-context-core {
+  --action-context-color:
+    #64748b;
+}
+
+/* Client 360° */
+.action-context-client {
+  --action-context-color:
+    #159c72;
+}
+
+
+.action-business-line {
+  display: flex;
+  align-items: center;
+  margin:
+    2px 0
+    10px;
+}
+
+.action-context-pill {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 24px;
+
+  padding:
+    0 9px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+/* ---------------------------------------------------------
+   CONTEXT PILLS
+   --------------------------------------------------------- */
+
+.action-context-pill-direction {
+  background:
+    #eef0f3;
+  color:
+    #30343c;
+}
+
+.action-context-pill-commercial {
+  background:
+    #f2edff;
+  color:
+    #7450d8;
+}
+
+.action-context-pill-assurance {
+  background:
+    #fff4df;
+  color:
+    #b66f08;
+}
+
+.action-context-pill-investissement {
+  background:
+    #eaf0ff;
+  color:
+    #3564d8;
+}
+
+.action-context-pill-fiduciaire {
+  background:
+    #f8efe3;
+  color:
+    #85551a;
+}
+
+.action-context-pill-technologies {
+  background:
+    #eeeaff;
+  color:
+    #6241ea;
+}
+
+.action-context-pill-core {
+  background:
+    #eef2f6;
+  color:
+    #526070;
+}
+
+.action-context-pill-client {
+  background:
+    #e9f8f2;
+  color:
+    #128561;
+}
+
+
+/* ---------------------------------------------------------
+   TERMINATED / CANCELLED VISUAL STATES
+   --------------------------------------------------------- */
+
+.action-card:has(
+  .status-success
+) {
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fbfefc
+    );
+}
+
+.action-card:has(
+  .status-success
+) .action-description {
+  opacity: .78;
+}
+
+
+/* ---------------------------------------------------------
+   FILTER POLISH
+   --------------------------------------------------------- */
+
+.action-filter-group select {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.action-filter-group select:focus {
+  outline: none;
+
+  border-color:
+    rgba(
+      108,
+      76,
+      255,
+      .45
+    );
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      108,
+      76,
+      255,
+      .08
+    );
+}
+
+.action-mine-filter {
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.action-mine-filter:hover {
+  background:
+    #f6f4ff;
+
+  border-color:
+    rgba(
+      108,
+      76,
+      255,
+      .18
+    );
+}
+
+/* =========================================================
+   ACTION CENTER — KPI SUMMARY LAYOUT
+   Desktop : 4 KPI sur une seule ligne
+   Tablet/mobile : reflow progressif
+   ========================================================= */
+
+.action-center-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.action-center-summary > div {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Tablette */
+@media (max-width: 980px) {
+  .action-center-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+  .action-center-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ACTION CENTER — SINGLE BUSINESS ACCENT
+   ========================================================= */
+
+.action-card {
+  position: relative;
+  overflow: hidden;
+
+  /* neutralise l'ancien accent gauche éventuel */
+  border-left: 1px solid var(--border);
+}
+
+/* un seul trait métier */
+.action-card::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+  width: 4px;
+
+  background:
+    var(--action-context-color);
+
+  border-radius:
+    16px 0 0 16px;
+
+  pointer-events: none;
+}
+
+/* évite tout ancien accent violet interne */
+.action-card::after {
+  display: none;
+}
+
+/* =========================================================
+   ACTION CENTER — ICONOGRAPHY LANGUAGE
+   ========================================================= */
+
+.action-source-icon {
+  background:
+    color-mix(
+      in srgb,
+      var(--action-context-color) 12%,
+      white
+    );
+
+  color:
+    var(--action-context-color);
+}
+
+.action-context-pill {
+  gap: 5px;
+}
+
+.action-context-pill svg {
+  flex:
+    0 0 auto;
+}
+
+.action-badge-content {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    4px;
+}
+
+.action-badge-content svg {
+  flex:
+    0 0 auto;
+}
+
+/* =========================================================
+   TOPBAR — BUSINESS CONTEXT COLORS
+   ========================================================= */
+
+.current-context-pill {
+  --context-color: #6c4cff;
+  --context-bg: #eeeaff;
+  --context-border: rgba(108, 76, 255, .18);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 10px;
+
+  border-radius: 999px;
+
+  color: var(--context-color);
+
+  background:
+    var(--context-bg);
+
+  border:
+    1px solid
+    var(--context-border);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Direction */
+.current-context-pill.context-direction {
+  --context-color: #2f3440;
+  --context-bg: #f1f2f4;
+  --context-border: rgba(47, 52, 64, .12);
+}
+
+/* Commercial */
+.current-context-pill.context-commercial {
+  --context-color: #7450d8;
+  --context-bg: #f2edff;
+  --context-border: rgba(116, 80, 216, .16);
+}
+
+/* Assurance */
+.current-context-pill.context-assurance {
+  --context-color: #b66f08;
+  --context-bg: #fff4df;
+  --context-border: rgba(182, 111, 8, .18);
+}
+
+/* Investissement */
+.current-context-pill.context-investissement {
+  --context-color: #3564d8;
+  --context-bg: #eaf0ff;
+  --context-border: rgba(53, 100, 216, .17);
+}
+
+/* Fiduciaire */
+.current-context-pill.context-fiduciaire {
+  --context-color: #85551a;
+  --context-bg: #f8efe3;
+  --context-border: rgba(133, 85, 26, .17);
+}
+
+/* Technologies */
+.current-context-pill.context-technologies {
+  --context-color: #6241ea;
+  --context-bg: #eeeaff;
+  --context-border: rgba(98, 65, 234, .18);
+}
