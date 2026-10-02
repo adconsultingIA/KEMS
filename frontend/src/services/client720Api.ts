@@ -106,6 +106,22 @@ export type Client720DataQuality = {
   has_organization: boolean
 
   completeness_score: number
+  missing_fields: string[]
+}
+
+
+export type Client720Provenance = {
+  contact_source_type: string
+  contact_source_reference: string | null
+
+  contact_collected_at: string | null
+  contact_last_verified_at: string | null
+
+  organization_source_type: string | null
+  organization_source_reference: string | null
+
+  organization_collected_at: string | null
+  organization_last_verified_at: string | null
 }
 
 
@@ -114,6 +130,7 @@ export type Client720Projection = {
   organization: Client720Organization | null
   relations: Client720Relation[]
   data_quality: Client720DataQuality
+  provenance: Client720Provenance
 }
 
 

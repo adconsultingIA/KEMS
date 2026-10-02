@@ -19,6 +19,7 @@ from app.schemas.auth import AuthContextResponse
 from app.schemas.client_720 import (
     Client720DataQuality,
     Client720Projection,
+    Client720Provenance,
     Client720Relation,
 )
 
@@ -177,13 +178,34 @@ def build_data_quality(
         | None
     ),
 ) -> Client720DataQuality:
-    checks = [
+    fields = {
+        "email":
+            bool(contact.email),
+        "phone":
+            bool(contact.phone),
+        "job_title":
+            bool(contact.job_title),
+        "organization":
+            organization is not None,
+    }
+
+    identity_checks = [
         bool(contact.first_name),
         bool(contact.last_name),
-        bool(contact.email),
-        bool(contact.phone),
-        bool(contact.job_title),
-        organization is not None,
+    ]
+
+    checks = (
+        identity_checks
+        + list(
+            fields.values()
+        )
+    )
+
+    missing_fields = [
+        field
+        for field, present
+        in fields.items()
+        if not present
     ]
 
     completeness_score = round(
@@ -218,6 +240,52 @@ def build_data_quality(
         ),
         completeness_score=(
             completeness_score
+        ),
+        missing_fields=(
+            missing_fields
+        ),
+    )
+
+
+def build_provenance(
+    contact: Contact,
+    organization: (
+        Organization
+        | None
+    ),
+) -> Client720Provenance:
+    return Client720Provenance(
+        contact_source_type=(
+            contact.source_type
+        ),
+        contact_source_reference=(
+            contact.source_reference
+        ),
+        contact_collected_at=(
+            contact.collected_at
+        ),
+        contact_last_verified_at=(
+            contact.last_verified_at
+        ),
+        organization_source_type=(
+            organization.source_type
+            if organization
+            else None
+        ),
+        organization_source_reference=(
+            organization.source_reference
+            if organization
+            else None
+        ),
+        organization_collected_at=(
+            organization.collected_at
+            if organization
+            else None
+        ),
+        organization_last_verified_at=(
+            organization.last_verified_at
+            if organization
+            else None
         ),
     )
 
@@ -262,6 +330,12 @@ def get_client_720_projection(
         relations=relations,
         data_quality=(
             build_data_quality(
+                contact,
+                organization,
+            )
+        ),
+        provenance=(
+            build_provenance(
                 contact,
                 organization,
             )

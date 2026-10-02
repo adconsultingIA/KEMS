@@ -470,3 +470,138 @@ def test_client_720_returns_real_organization_relations(
         ]
         is False
     )
+
+
+def test_client_720_exposes_quality_and_provenance(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        contact,
+        organization,
+    ) = create_client_contact(
+        db_session
+    )
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    quality = payload[
+        "data_quality"
+    ]
+
+    assert (
+        quality[
+            "completeness_score"
+        ]
+        == 100
+    )
+
+    assert (
+        quality[
+            "missing_fields"
+        ]
+        == []
+    )
+
+    provenance = payload[
+        "provenance"
+    ]
+
+    assert (
+        provenance[
+            "contact_source_type"
+        ]
+        == "legacy_import"
+    )
+
+    assert (
+        provenance[
+            "contact_source_reference"
+        ]
+        == "legacy-client-001"
+    )
+
+    assert (
+        provenance[
+            "organization_source_type"
+        ]
+        == organization.source_type
+    )
+
+
+def test_client_720_lists_missing_quality_fields(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    contact = Contact(
+        first_name="Incomplete",
+        last_name="Contact",
+        normalized_name=(
+            "incomplete contact"
+        ),
+        source_type="manual",
+        is_active=True,
+    )
+
+    db_session.add(
+        contact
+    )
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    quality = response.json()[
+        "data_quality"
+    ]
+
+    assert (
+        quality[
+            "completeness_score"
+        ]
+        == 33
+    )
+
+    assert set(
+        quality[
+            "missing_fields"
+        ]
+    ) == {
+        "email",
+        "phone",
+        "job_title",
+        "organization",
+    }

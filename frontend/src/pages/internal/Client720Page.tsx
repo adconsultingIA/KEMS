@@ -6,12 +6,14 @@ import {
   Clock3,
   FileText,
   History,
+  Database,
   LockKeyhole,
   Play,
   RefreshCcw,
   RefreshCw,
   RotateCcw,
   ShieldCheck,
+  ShieldAlert,
   SlidersHorizontal,
   UserCheck,
   UserRound,
@@ -120,6 +122,59 @@ function locationLabel(
     values.length
       ? values.join(", ")
       : "Localisation non renseignée"
+  )
+}
+
+
+function formatCoreDate(
+  value: string | null,
+) {
+  if (!value) {
+    return "Jamais"
+  }
+
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-CH",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date)
+}
+
+
+function missingFieldLabel(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      email:
+        "Email",
+      phone:
+        "Téléphone",
+      job_title:
+        "Fonction",
+      organization:
+        "Organisation",
+    }
+
+  return (
+    labels[value]
+    ?? value
   )
 }
 
@@ -1027,6 +1082,218 @@ export function Client720Page() {
           hint="Dernier contact aujourd'hui"
         />
       </section>
+
+      {client720 ? (
+        <section className="client-core-quality-grid">
+          <div className="panel client-core-quality-card">
+            <div className="client-core-quality-heading">
+              <div className="client-core-quality-icon">
+                <ShieldCheck
+                  size={19}
+                />
+              </div>
+
+              <div>
+                <span className="eyebrow">
+                  Qualité Core
+                </span>
+
+                <h2>
+                  Qualité & vérification
+                </h2>
+              </div>
+            </div>
+
+            <div className="client-core-quality-score">
+              <div>
+                <strong>
+                  {
+                    client720.data_quality.completeness_score
+                  }
+                  %
+                </strong>
+
+                <span>
+                  Complétude
+                </span>
+              </div>
+
+              <div>
+                <strong
+                  className={
+                    client720.data_quality.is_verified
+                      ? "is-verified"
+                      : "is-unverified"
+                  }
+                >
+                  {
+                    client720.data_quality.is_verified
+                      ? "Vérifié"
+                      : "À vérifier"
+                  }
+                </strong>
+
+                <span>
+                  Vérification
+                </span>
+              </div>
+            </div>
+
+            {
+              client720.data_quality.missing_fields.length
+                ? (
+                  <div className="client-core-missing">
+                    <div>
+                      <ShieldAlert
+                        size={14}
+                      />
+
+                      <strong>
+                        Informations à compléter
+                      </strong>
+                    </div>
+
+                    <div className="client-core-missing-tags">
+                      {
+                        client720.data_quality.missing_fields.map(
+                          (
+                            field,
+                          ) => (
+                            <span
+                              key={
+                                field
+                              }
+                            >
+                              {
+                                missingFieldLabel(
+                                  field,
+                                )
+                              }
+                            </span>
+                          ),
+                        )
+                      }
+                    </div>
+                  </div>
+                )
+                : (
+                  <div className="client-core-complete">
+                    <CircleCheck
+                      size={14}
+                    />
+
+                    Données essentielles complètes
+                  </div>
+                )
+            }
+          </div>
+
+          <div className="panel client-core-provenance-card">
+            <div className="client-core-quality-heading">
+              <div className="client-core-quality-icon provenance">
+                <Database
+                  size={19}
+                />
+              </div>
+
+              <div>
+                <span className="eyebrow">
+                  Traçabilité
+                </span>
+
+                <h2>
+                  Provenance des données
+                </h2>
+              </div>
+            </div>
+
+            <div className="client-core-provenance-list">
+              <div>
+                <span>
+                  Source contact
+                </span>
+
+                <strong>
+                  {
+                    formatSourceLabel(
+                      client720.provenance.contact_source_type,
+                    )
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Référence source
+                </span>
+
+                <strong>
+                  {
+                    client720.provenance.contact_source_reference
+                    ?? "Aucune"
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Collecté le
+                </span>
+
+                <strong>
+                  {
+                    formatCoreDate(
+                      client720.provenance.contact_collected_at,
+                    )
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Dernière vérification
+                </span>
+
+                <strong>
+                  {
+                    formatCoreDate(
+                      client720.provenance.contact_last_verified_at,
+                    )
+                  }
+                </strong>
+              </div>
+            </div>
+
+            {
+              client720.organization
+                ? (
+                  <div className="client-core-org-provenance">
+                    <span>
+                      Organisation
+                    </span>
+
+                    <strong>
+                      {
+                        client720.organization.name
+                      }
+                    </strong>
+
+                    <small>
+                      Source : {
+                        client720.provenance.organization_source_type
+                          ? formatSourceLabel(
+                              client720.provenance.organization_source_type,
+                            )
+                          : "Non renseignée"
+                      }
+                    </small>
+                  </div>
+                )
+                : null
+            }
+          </div>
+        </section>
+      ) : null}
 
       <section className="business-cards">
         <div className="business-card">
