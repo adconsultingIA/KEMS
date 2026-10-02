@@ -5802,3 +5802,37 @@ h3 {
     min-width: 0;
   }
 }
+
+/* =========================================================
+   C06.2 — CLIENT 720 REAL CORE IDENTITY
+   ========================================================= */
+
+.client720-core-state {
+  min-height: 150px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  color: var(--muted);
+
+  text-align: center;
+
+  font-size: 11px;
+}
+
+.client720-core-state.error {
+  color: #b42318;
+}
+
+.client720-core-state strong,
+.client720-core-state span {
+  display: block;
+}
+
+.entity-contact-grid strong {
+  overflow-wrap: anywhere;
+}

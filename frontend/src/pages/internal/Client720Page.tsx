@@ -35,9 +35,94 @@ import { useAuth } from "../../hooks/useAuth"
 import {
   listActivitiesRequest,
 } from "../../services/activitiesApi"
+import {
+  getClient720Request,
+} from "../../services/client720Api"
+import type {
+  Client720Projection,
+} from "../../services/client720Api"
 import type {
   ApiActivity,
 } from "../../services/activitiesApi"
+
+function formatSourceLabel(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      manual:
+        "Saisie manuelle",
+      legacy_import:
+        "Import historique",
+      client_360:
+        "Client 360°",
+      csv:
+        "Import CSV",
+      scraping:
+        "Acquisition externe",
+    }
+
+  return (
+    labels[value]
+    ?? value
+      .replaceAll(
+        "_",
+        " ",
+      )
+  )
+}
+
+
+function formatDecisionRole(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      decision_maker:
+        "Décideur",
+      decider:
+        "Décideur",
+      influencer:
+        "Influenceur",
+      user:
+        "Utilisateur",
+      unknown:
+        "Rôle à qualifier",
+    }
+
+  return (
+    labels[value]
+    ?? value
+  )
+}
+
+
+function contactInitials(
+  firstName: string,
+  lastName: string,
+) {
+  return (
+    `${firstName.charAt(0)}${lastName.charAt(0)}`
+      .toUpperCase()
+  )
+}
+
+
+function locationLabel(
+  projection: Client720Projection,
+) {
+  const values = [
+    projection.organization?.city,
+    projection.organization?.country,
+  ].filter(Boolean)
+
+  return (
+    values.length
+      ? values.join(", ")
+      : "Localisation non renseignée"
+  )
+}
+
 
 function activityIcon(
   eventType: string,
@@ -317,6 +402,29 @@ export function Client720Page() {
   } = useAuth()
 
   const [
+    client720,
+    setClient720,
+  ] =
+    useState<
+      Client720Projection
+      | null
+    >(null)
+
+  const [
+    client720Loading,
+    setClient720Loading,
+  ] =
+    useState(false)
+
+  const [
+    client720Error,
+    setClient720Error,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
     activities,
     setActivities,
   ] =
@@ -391,6 +499,88 @@ export function Client720Page() {
             === historyEventType
         ),
     )
+
+
+  useEffect(
+    () => {
+      if (
+        !token
+        || !contactId
+      ) {
+        return
+      }
+
+      let cancelled = false
+
+      void Promise.resolve()
+        .then(
+          () => {
+            if (!cancelled) {
+              setClient720Loading(
+                true,
+              )
+            }
+
+            return getClient720Request(
+              token,
+              contactId,
+            )
+          },
+        )
+        .then(
+          (
+            result,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setClient720(
+              result,
+            )
+
+            setClient720Error(
+              null,
+            )
+          },
+        )
+        .catch(
+          (
+            caught,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setClient720Error(
+              caught instanceof Error
+                ? caught.message
+                : (
+                  "Impossible de charger "
+                  + "le Client 720°."
+                ),
+            )
+          },
+        )
+        .finally(
+          () => {
+            if (!cancelled) {
+              setClient720Loading(
+                false,
+              )
+            }
+          },
+        )
+
+      return () => {
+        cancelled = true
+      }
+    },
+    [
+      contactId,
+      token,
+    ],
+  )
 
 
   useEffect(
@@ -486,53 +676,171 @@ export function Client720Page() {
       </Link>
 
       <section className="entity-hero">
-        <div className="entity-hero-main">
-          <div className="avatar hero-avatar">JD</div>
+        {client720Loading && !client720 ? (
+          <div className="client720-core-state">
+            <RefreshCw
+              size={18}
+            />
 
-          <div>
-            <span className="eyebrow">Client 720°</span>
-            <h1>Jean Dupont</h1>
-            <p>
-              Directeur — Example Consulting SA
-            </p>
-            <span className="muted">
-              Genève, Suisse
+            <span>
+              Chargement des données Core...
             </span>
+          </div>
+        ) : client720Error && !client720 ? (
+          <div className="client720-core-state error">
+            <strong>
+              Client 720° indisponible
+            </strong>
 
-            <div className="badge-row">
-              <StatusBadge tone="success">
-                Vérifié
-              </StatusBadge>
-              <StatusBadge tone="info">
-                Décideur
-              </StatusBadge>
-              <StatusBadge>Client actif</StatusBadge>
-              <StatusBadge>Assurance</StatusBadge>
-              <StatusBadge>
-                Investissement
-              </StatusBadge>
+            <span>
+              {client720Error}
+            </span>
+          </div>
+        ) : client720 ? (
+          <>
+            <div className="entity-hero-main">
+              <div className="avatar hero-avatar">
+                {
+                  contactInitials(
+                    client720.contact.first_name,
+                    client720.contact.last_name,
+                  )
+                }
+              </div>
+
+              <div>
+                <span className="eyebrow">
+                  Client 720°
+                </span>
+
+                <h1>
+                  {
+                    client720.contact.first_name
+                  }
+                  {" "}
+                  {
+                    client720.contact.last_name
+                  }
+                </h1>
+
+                <p>
+                  {
+                    client720.contact.job_title
+                    ?? "Fonction non renseignée"
+                  }
+
+                  {
+                    client720.organization
+                      ? (
+                        <>
+                          {" — "}
+                          {
+                            client720.organization.name
+                          }
+                        </>
+                      )
+                      : null
+                  }
+                </p>
+
+                <span className="muted">
+                  {
+                    locationLabel(
+                      client720,
+                    )
+                  }
+                </span>
+
+                <div className="badge-row">
+                  <StatusBadge
+                    tone={
+                      client720.data_quality.is_verified
+                        ? "success"
+                        : undefined
+                    }
+                  >
+                    {
+                      client720.data_quality.is_verified
+                        ? "Vérifié"
+                        : "Non vérifié"
+                    }
+                  </StatusBadge>
+
+                  <StatusBadge tone="info">
+                    {
+                      formatDecisionRole(
+                        client720.contact.decision_role,
+                      )
+                    }
+                  </StatusBadge>
+
+                  <StatusBadge>
+                    {
+                      client720.contact.is_active
+                        ? "Client actif"
+                        : "Client inactif"
+                    }
+                  </StatusBadge>
+
+                  <StatusBadge>
+                    Assurance
+                  </StatusBadge>
+
+                  <StatusBadge>
+                    Investissement
+                  </StatusBadge>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="entity-contact-grid">
-          <div>
-            <span>Email</span>
-            <strong>jean.dupont@example.ch</strong>
-          </div>
-          <div>
-            <span>Téléphone</span>
-            <strong>+41 79 123 45 67</strong>
-          </div>
-          <div>
-            <span>Source</span>
-            <strong>Legacy import</strong>
-          </div>
-          <div>
-            <span>Qualité</span>
-            <strong>94%</strong>
-          </div>
-        </div>
+            <div className="entity-contact-grid">
+              <div>
+                <span>Email</span>
+
+                <strong>
+                  {
+                    client720.contact.email
+                    ?? "Non renseigné"
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>Téléphone</span>
+
+                <strong>
+                  {
+                    client720.contact.phone
+                    ?? "Non renseigné"
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>Source</span>
+
+                <strong>
+                  {
+                    formatSourceLabel(
+                      client720.contact.source_type,
+                    )
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>Qualité</span>
+
+                <strong>
+                  {
+                    client720.data_quality.completeness_score
+                  }
+                  %
+                </strong>
+              </div>
+            </div>
+          </>
+        ) : null}
       </section>
 
       <div className="section-tabs">
@@ -629,8 +937,18 @@ export function Client720Page() {
         />
         <MetricCard
           label="Data Quality"
-          value="94%"
-          hint="Données fiables"
+          value={
+            client720
+              ? (
+                `${client720.data_quality.completeness_score}%`
+              )
+              : "—"
+          }
+          hint={
+            client720?.data_quality.is_verified
+              ? "Données Core vérifiées"
+              : "Vérification à compléter"
+          }
         />
         <MetricCard
           label="Activité"
