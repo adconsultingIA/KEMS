@@ -4,8 +4,10 @@ import {
   Calculator,
   CalendarDays,
   CircleCheck,
+  Clock3,
   Database,
   Handshake,
+  History,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -36,6 +38,14 @@ import {
 import {
   useAuth,
 } from "../../hooks/useAuth"
+
+import {
+  listActivitiesRequest,
+} from "../../services/activitiesApi"
+
+import type {
+  ApiActivity,
+} from "../../services/activitiesApi"
 
 import {
   getOrganization720Request,
@@ -461,6 +471,122 @@ function commercialPipelineLabel(
 }
 
 
+function organizationActivityContextLabel(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      direction:
+        "Direction",
+      commercial:
+        "Commercial",
+      assurance:
+        "Assurance",
+      investissement:
+        "Investissement",
+      fiduciaire:
+        "Fiduciaire",
+      technologies:
+        "Technologies",
+      core:
+        "KEMS Core",
+      client:
+        "Client 360°",
+    }
+
+  return (
+    labels[value]
+    ?? value.replaceAll(
+      "_",
+      " ",
+    )
+  )
+}
+
+
+function organizationActivityEventLabel(
+  value: string,
+) {
+  const labels:
+    Record<string, string> = {
+      "action.created":
+        "Action créée",
+      "action.assigned":
+        "Action assignée",
+      "action.reassigned":
+        "Action réassignée",
+      "action.started":
+        "Action démarrée",
+      "action.blocked":
+        "Action bloquée",
+      "action.completed":
+        "Action terminée",
+      "action.reopened":
+        "Action réouverte",
+      "action.cancelled":
+        "Action annulée",
+      "client.advice_requested":
+        "Demande de conseil",
+    }
+
+  return (
+    labels[value]
+    ?? value.replaceAll(
+      ".",
+      " · ",
+    )
+  )
+}
+
+
+function organizationActivityActorLabel(
+  activity: ApiActivity,
+) {
+  if (
+    activity.actor_type
+    === "client"
+  ) {
+    return "Client"
+  }
+
+  if (
+    activity.actor_type
+    === "internal"
+  ) {
+    return "Équipe KEMS"
+  }
+
+  return "Système KEMS"
+}
+
+
+function formatOrganizationActivityDate(
+  value: string,
+) {
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-CH",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date)
+}
+
+
 export function Organization720Page() {
   const {
     organizationId,
@@ -500,7 +626,43 @@ export function Organization720Page() {
     useState<
       "overview"
       | "contacts"
+      | "history"
     >("overview")
+
+  const [
+    activities,
+    setActivities,
+  ] =
+    useState<
+      ApiActivity[]
+    >([])
+
+  const [
+    activitiesLoading,
+    setActivitiesLoading,
+  ] =
+    useState(false)
+
+  const [
+    activitiesError,
+    setActivitiesError,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    activityContextFilter,
+    setActivityContextFilter,
+  ] =
+    useState("all")
+
+  const [
+    activityEventFilter,
+    setActivityEventFilter,
+  ] =
+    useState("all")
+
 
   const [
     contactFilter,
@@ -581,6 +743,81 @@ export function Organization720Page() {
           () => {
             if (!cancelled) {
               setLoading(
+                false,
+              )
+            }
+          },
+        )
+
+      return () => {
+        cancelled = true
+      }
+    },
+    [
+      organizationId,
+      token,
+    ],
+  )
+
+
+  useEffect(
+    () => {
+      if (
+        !token
+        || !organizationId
+      ) {
+        return
+      }
+
+      let cancelled = false
+
+      setActivitiesLoading(
+        true,
+      )
+
+      void listActivitiesRequest(
+        token,
+        {
+          organizationId,
+          limit: 500,
+        },
+      )
+        .then(
+          (
+            result,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setActivities(
+              result,
+            )
+
+            setActivitiesError(
+              null,
+            )
+          },
+        )
+        .catch(
+          (
+            caught,
+          ) => {
+            if (cancelled) {
+              return
+            }
+
+            setActivitiesError(
+              caught instanceof Error
+                ? caught.message
+                : "Impossible de charger l'historique.",
+            )
+          },
+        )
+        .finally(
+          () => {
+            if (!cancelled) {
+              setActivitiesLoading(
                 false,
               )
             }
@@ -688,6 +925,64 @@ export function Organization720Page() {
     contacts,
     business_summary: businessSummary,
   } = organization720
+
+
+  const availableActivityContexts =
+    Array.from(
+      new Set(
+        activities.map(
+          (
+            activity,
+          ) =>
+            activity.context,
+        ),
+      ),
+    ).sort()
+
+
+  const availableActivityEvents =
+    Array.from(
+      new Set(
+        activities.map(
+          (
+            activity,
+          ) =>
+            activity.event_type,
+        ),
+      ),
+    ).sort()
+
+
+  const filteredActivities =
+    activities.filter(
+      (
+        activity,
+      ) => {
+        const contextMatches =
+          activityContextFilter
+            === "all"
+          || activity.context
+            === activityContextFilter
+
+        const eventMatches =
+          activityEventFilter
+            === "all"
+          || activity.event_type
+            === activityEventFilter
+
+        return (
+          contextMatches
+          && eventMatches
+        )
+      },
+    )
+
+
+  const recentActivities =
+    activities.slice(
+      0,
+      6,
+    )
 
 
   const visibleContacts =
@@ -980,7 +1275,17 @@ export function Organization720Page() {
 
         <button
           type="button"
-          className="tab"
+          className={
+            activeSection
+              === "history"
+              ? "tab active"
+              : "tab"
+          }
+          onClick={() =>
+            setActiveSection(
+              "history",
+            )
+          }
         >
           Historique
         </button>
@@ -1391,6 +1696,200 @@ export function Organization720Page() {
               </section>
 
 
+              <section className="panel organization720-timeline-panel">
+                <div className="organization720-timeline-heading">
+                  <div>
+                    <span className="eyebrow">
+                      Activité Core
+                    </span>
+
+                    <h2>
+                      Activité récente
+                    </h2>
+
+                    <p>
+                      Événements réellement rattachés
+                      à cette organisation.
+                    </p>
+                  </div>
+
+                  <div className="organization720-timeline-count">
+                    <History
+                      size={17}
+                    />
+
+                    <strong>
+                      {
+                        activities.length
+                      }
+                    </strong>
+
+                    <span>
+                      événement
+                      {
+                        activities.length
+                        > 1
+                          ? "s"
+                          : ""
+                      }
+                    </span>
+                  </div>
+                </div>
+
+
+                {
+                  activitiesLoading
+                    ? (
+                      <div className="organization720-timeline-empty">
+                        <RefreshCw
+                          size={19}
+                        />
+
+                        Chargement de l'activité...
+                      </div>
+                    )
+                    : activitiesError
+                      ? (
+                        <div className="organization720-timeline-empty error">
+                          <ShieldAlert
+                            size={19}
+                          />
+
+                          {
+                            activitiesError
+                          }
+                        </div>
+                      )
+                      : recentActivities.length
+                        ? (
+                          <>
+                            <div className="organization720-timeline">
+                              {
+                                recentActivities.map(
+                                  (
+                                    activity,
+                                  ) => (
+                                    <article
+                                      key={
+                                        activity.id
+                                      }
+                                      className="organization720-timeline-item"
+                                    >
+                                      <div
+                                        className={
+                                          `organization720-timeline-dot ${activity.context}`
+                                        }
+                                      >
+                                        <Clock3
+                                          size={14}
+                                        />
+                                      </div>
+
+                                      <div className="organization720-timeline-content">
+                                        <div className="organization720-timeline-top">
+                                          <strong>
+                                            {
+                                              activity.title
+                                            }
+                                          </strong>
+
+                                          <span>
+                                            {
+                                              formatOrganizationActivityDate(
+                                                activity.created_at,
+                                              )
+                                            }
+                                          </span>
+                                        </div>
+
+                                        {
+                                          activity.description
+                                            ? (
+                                              <p>
+                                                {
+                                                  activity.description
+                                                }
+                                              </p>
+                                            )
+                                            : null
+                                        }
+
+                                        <div className="organization720-timeline-meta">
+                                          <span
+                                            className={
+                                              `organization720-context-chip ${activity.context}`
+                                            }
+                                          >
+                                            {
+                                              organizationActivityContextLabel(
+                                                activity.context,
+                                              )
+                                            }
+                                          </span>
+
+                                          <span>
+                                            {
+                                              organizationActivityEventLabel(
+                                                activity.event_type,
+                                              )
+                                            }
+                                          </span>
+
+                                          <span>
+                                            {
+                                              organizationActivityActorLabel(
+                                                activity,
+                                              )
+                                            }
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </article>
+                                  ),
+                                )
+                              }
+                            </div>
+
+                            {
+                              activities.length
+                              > 6
+                                ? (
+                                  <button
+                                    type="button"
+                                    className="button secondary"
+                                    onClick={() =>
+                                      setActiveSection(
+                                        "history",
+                                      )
+                                    }
+                                  >
+                                    Voir tout l'historique
+                                  </button>
+                                )
+                                : null
+                            }
+                          </>
+                        )
+                        : (
+                          <div className="organization720-timeline-empty">
+                            <History
+                              size={20}
+                            />
+
+                            <strong>
+                              Aucun événement enregistré
+                            </strong>
+
+                            <span>
+                              Les prochaines activités liées
+                              à cette organisation apparaîtront ici.
+                            </span>
+                          </div>
+                        )
+                }
+              </section>
+
+
               <section className="organization720-quality-grid">
                 <div className="panel organization720-quality-card">
                   <div className="organization720-quality-heading">
@@ -1679,6 +2178,304 @@ export function Organization720Page() {
                 </div>
               </section>
             </>
+          )
+          : null
+      }
+
+
+      {
+        activeSection
+        === "history"
+          ? (
+            <section className="panel organization720-history-panel">
+              <div className="organization720-timeline-heading">
+                <div>
+                  <span className="eyebrow">
+                    Historique complet
+                  </span>
+
+                  <h2>
+                    Timeline organisation
+                  </h2>
+
+                  <p>
+                    Historique transverse visible selon
+                    les droits et le contexte actif.
+                  </p>
+                </div>
+
+                <div className="organization720-timeline-count">
+                  <History
+                    size={17}
+                  />
+
+                  <strong>
+                    {
+                      filteredActivities.length
+                    }
+                  </strong>
+
+                  <span>
+                    affiché
+                    {
+                      filteredActivities.length
+                      > 1
+                        ? "s"
+                        : ""
+                    }
+                  </span>
+                </div>
+              </div>
+
+
+              <div className="organization720-history-filters">
+                <label>
+                  <span>
+                    Métier
+                  </span>
+
+                  <select
+                    value={
+                      activityContextFilter
+                    }
+                    onChange={
+                      (
+                        event,
+                      ) =>
+                        setActivityContextFilter(
+                          event.target.value,
+                        )
+                    }
+                  >
+                    <option value="all">
+                      Tous les contextes
+                    </option>
+
+                    {
+                      availableActivityContexts.map(
+                        (
+                          context,
+                        ) => (
+                          <option
+                            key={
+                              context
+                            }
+                            value={
+                              context
+                            }
+                          >
+                            {
+                              organizationActivityContextLabel(
+                                context,
+                              )
+                            }
+                          </option>
+                        ),
+                      )
+                    }
+                  </select>
+                </label>
+
+                <label>
+                  <span>
+                    Événement
+                  </span>
+
+                  <select
+                    value={
+                      activityEventFilter
+                    }
+                    onChange={
+                      (
+                        event,
+                      ) =>
+                        setActivityEventFilter(
+                          event.target.value,
+                        )
+                    }
+                  >
+                    <option value="all">
+                      Tous les événements
+                    </option>
+
+                    {
+                      availableActivityEvents.map(
+                        (
+                          eventType,
+                        ) => (
+                          <option
+                            key={
+                              eventType
+                            }
+                            value={
+                              eventType
+                            }
+                          >
+                            {
+                              organizationActivityEventLabel(
+                                eventType,
+                              )
+                            }
+                          </option>
+                        ),
+                      )
+                    }
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => {
+                    setActivityContextFilter(
+                      "all",
+                    )
+                    setActivityEventFilter(
+                      "all",
+                    )
+                  }}
+                >
+                  Réinitialiser
+                </button>
+              </div>
+
+
+              {
+                activitiesLoading
+                  ? (
+                    <div className="organization720-timeline-empty">
+                      Chargement...
+                    </div>
+                  )
+                  : filteredActivities.length
+                    ? (
+                      <div className="organization720-timeline full">
+                        {
+                          filteredActivities.map(
+                            (
+                              activity,
+                            ) => (
+                              <article
+                                key={
+                                  activity.id
+                                }
+                                className="organization720-timeline-item"
+                              >
+                                <div
+                                  className={
+                                    `organization720-timeline-dot ${activity.context}`
+                                  }
+                                >
+                                  <Clock3
+                                    size={14}
+                                  />
+                                </div>
+
+                                <div className="organization720-timeline-content">
+                                  <div className="organization720-timeline-top">
+                                    <strong>
+                                      {
+                                        activity.title
+                                      }
+                                    </strong>
+
+                                    <span>
+                                      {
+                                        formatOrganizationActivityDate(
+                                          activity.created_at,
+                                        )
+                                      }
+                                    </span>
+                                  </div>
+
+                                  {
+                                    activity.description
+                                      ? (
+                                        <p>
+                                          {
+                                            activity.description
+                                          }
+                                        </p>
+                                      )
+                                      : null
+                                  }
+
+                                  <div className="organization720-timeline-meta">
+                                    <span
+                                      className={
+                                        `organization720-context-chip ${activity.context}`
+                                      }
+                                    >
+                                      {
+                                        organizationActivityContextLabel(
+                                          activity.context,
+                                        )
+                                      }
+                                    </span>
+
+                                    <span>
+                                      {
+                                        organizationActivityEventLabel(
+                                          activity.event_type,
+                                        )
+                                      }
+                                    </span>
+
+                                    <span>
+                                      {
+                                        organizationActivityActorLabel(
+                                          activity,
+                                        )
+                                      }
+                                    </span>
+
+                                    {
+                                      activity.action_id
+                                        ? (
+                                          <span>
+                                            Action liée
+                                          </span>
+                                        )
+                                        : null
+                                    }
+
+                                    {
+                                      activity.source_entity_type
+                                        ? (
+                                          <span>
+                                            Source : {
+                                              activity.source_entity_type
+                                            }
+                                          </span>
+                                        )
+                                        : null
+                                    }
+                                  </div>
+                                </div>
+                              </article>
+                            ),
+                          )
+                        }
+                      </div>
+                    )
+                    : (
+                      <div className="organization720-timeline-empty">
+                        <History
+                          size={20}
+                        />
+
+                        <strong>
+                          Aucun événement dans cette vue
+                        </strong>
+
+                        <span>
+                          Modifie les filtres ou attends
+                          une nouvelle activité liée à l'organisation.
+                        </span>
+                      </div>
+                    )
+              }
+            </section>
           )
           : null
       }

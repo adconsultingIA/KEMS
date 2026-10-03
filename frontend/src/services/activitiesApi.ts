@@ -54,6 +54,7 @@ export async function listActivitiesRequest(
   token: string,
   options?: {
     contactId?: string
+    organizationId?: string
     context?: string
     actionId?: string
     eventType?: string
@@ -69,6 +70,15 @@ export async function listActivitiesRequest(
     params.set(
       "contact_id",
       options.contactId,
+    )
+  }
+
+  if (
+    options?.organizationId
+  ) {
+    params.set(
+      "organization_id",
+      options.organizationId,
     )
   }
 

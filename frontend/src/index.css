@@ -7824,3 +7824,341 @@ h3 {
       1fr;
   }
 }
+
+/* =========================================================
+   C07.6 — ORGANIZATION 720 ACTIVITY / TIMELINE
+   ========================================================= */
+
+.organization720-timeline-panel,
+.organization720-history-panel {
+  padding: 24px;
+}
+
+.organization720-timeline-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.organization720-timeline-heading h2 {
+  margin:
+    4px 0 5px;
+}
+
+.organization720-timeline-heading p {
+  margin: 0;
+
+  color: var(--muted);
+}
+
+
+.organization720-timeline-count {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 10px 13px;
+
+  border:
+    1px solid rgba(99, 91, 255, 0.15);
+
+  border-radius: 11px;
+
+  background:
+    rgba(99, 91, 255, 0.05);
+
+  color: #635bff;
+}
+
+.organization720-timeline-count span {
+  font-size: 11px;
+
+  color: var(--muted);
+}
+
+
+.organization720-timeline {
+  display: flex;
+  flex-direction: column;
+
+  margin:
+    22px 0 18px;
+}
+
+.organization720-timeline-item {
+  display: grid;
+  grid-template-columns:
+    34px minmax(0, 1fr);
+
+  gap: 12px;
+
+  position: relative;
+
+  padding-bottom: 18px;
+}
+
+.organization720-timeline-item:not(:last-child)::before {
+  content: "";
+
+  position: absolute;
+
+  left: 16px;
+  top: 31px;
+  bottom: 0;
+
+  width: 1px;
+
+  background:
+    rgba(148, 163, 184, 0.24);
+}
+
+
+.organization720-timeline-dot {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1;
+
+  border-radius: 10px;
+
+  background: #eef2f7;
+
+  color: #64748b;
+}
+
+.organization720-timeline-dot.commercial {
+  background: rgba(124, 92, 231, 0.1);
+  color: #7c5ce7;
+}
+
+.organization720-timeline-dot.assurance {
+  background: rgba(204, 123, 8, 0.1);
+  color: #cc7b08;
+}
+
+.organization720-timeline-dot.investissement {
+  background: rgba(82, 108, 255, 0.1);
+  color: #526cff;
+}
+
+.organization720-timeline-dot.fiduciaire {
+  background: rgba(154, 107, 55, 0.1);
+  color: #9a6b37;
+}
+
+.organization720-timeline-dot.technologies {
+  background: rgba(116, 87, 255, 0.1);
+  color: #7457ff;
+}
+
+.organization720-timeline-dot.client {
+  background: rgba(16, 185, 129, 0.1);
+  color: #0b8f68;
+}
+
+
+.organization720-timeline-content {
+  min-width: 0;
+
+  padding:
+    4px 0 2px;
+}
+
+.organization720-timeline-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+.organization720-timeline-top > strong {
+  color: #1d2027;
+}
+
+.organization720-timeline-top > span {
+  white-space: nowrap;
+
+  font-size: 11px;
+
+  color: var(--muted);
+}
+
+.organization720-timeline-content p {
+  margin:
+    6px 0 8px;
+
+  color: #646b78;
+
+  font-size: 13px;
+}
+
+
+.organization720-timeline-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 7px;
+}
+
+.organization720-timeline-meta > span {
+  font-size: 10px;
+
+  color: #7c8390;
+}
+
+
+.organization720-context-chip {
+  padding: 4px 7px;
+
+  border-radius: 7px;
+
+  background: #f0f2f5;
+
+  font-weight: 600;
+}
+
+.organization720-context-chip.commercial {
+  color: #7c5ce7;
+  background: rgba(124, 92, 231, 0.08);
+}
+
+.organization720-context-chip.assurance {
+  color: #b86a00;
+  background: rgba(204, 123, 8, 0.09);
+}
+
+.organization720-context-chip.investissement {
+  color: #526cff;
+  background: rgba(82, 108, 255, 0.08);
+}
+
+.organization720-context-chip.fiduciaire {
+  color: #8b5c2e;
+  background: rgba(154, 107, 55, 0.09);
+}
+
+.organization720-context-chip.technologies {
+  color: #7457ff;
+  background: rgba(116, 87, 255, 0.08);
+}
+
+
+.organization720-timeline-empty {
+  min-height: 150px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 18px;
+
+  border:
+    1px dashed rgba(148, 163, 184, 0.3);
+
+  border-radius: 13px;
+
+  color: var(--muted);
+
+  text-align: center;
+}
+
+.organization720-timeline-empty strong {
+  color: #333842;
+}
+
+.organization720-timeline-empty.error {
+  color: #b45309;
+}
+
+
+.organization720-history-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+
+  gap: 12px;
+
+  margin-top: 22px;
+
+  padding: 15px;
+
+  border-radius: 13px;
+
+  background:
+    rgba(248, 250, 252, 0.95);
+}
+
+.organization720-history-filters label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  min-width: 190px;
+}
+
+.organization720-history-filters label > span {
+  font-size: 10px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  color: var(--muted);
+}
+
+.organization720-history-filters select {
+  min-height: 38px;
+
+  padding:
+    0 10px;
+
+  border:
+    1px solid rgba(148, 163, 184, 0.25);
+
+  border-radius: 9px;
+
+  background: #fff;
+
+  color: #2e333b;
+}
+
+
+@media (
+  max-width: 700px
+) {
+  .organization720-timeline-heading {
+    flex-direction: column;
+  }
+
+  .organization720-timeline-top {
+    flex-direction: column;
+
+    gap: 4px;
+  }
+
+  .organization720-timeline-top > span {
+    white-space: normal;
+  }
+
+  .organization720-history-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .organization720-history-filters label {
+    min-width: 0;
+  }
+}
