@@ -7651,3 +7651,176 @@ h3 {
       1fr;
   }
 }
+
+/* =========================================================
+   C07.5 — ORGANIZATION BUSINESS SUMMARIES
+   ========================================================= */
+
+.organization720-business-section {
+  display: flex;
+  flex-direction: column;
+
+  gap: 16px;
+}
+
+.organization720-business-heading h2 {
+  margin:
+    4px 0 5px;
+}
+
+.organization720-business-heading p {
+  margin: 0;
+
+  color: var(--muted);
+}
+
+
+.organization720-business-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+
+.organization720-business-card {
+  min-height: 176px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  padding: 17px;
+
+  border:
+    1px solid rgba(148, 163, 184, 0.2);
+
+  border-radius: 14px;
+
+  background: #fff;
+}
+
+
+.organization720-business-card-head {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 5px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: var(--muted);
+}
+
+
+.organization720-business-card > strong {
+  font-size: 16px;
+
+  color: #17191e;
+}
+
+
+.organization720-business-card > span {
+  min-height: 20px;
+
+  font-size: 12px;
+
+  color: #505766;
+}
+
+
+.organization720-business-card > small {
+  margin-top: auto;
+
+  font-size: 9px;
+  line-height: 1.35;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.055em;
+
+  color: #89909d;
+}
+
+
+.organization720-business-card.commercial
+.organization720-business-card-head {
+  color: #7c5ce7;
+}
+
+.organization720-business-card.assurance
+.organization720-business-card-head {
+  color: #cc7b08;
+}
+
+.organization720-business-card.investissement
+.organization720-business-card-head {
+  color: #526cff;
+}
+
+.organization720-business-card.fiduciaire
+.organization720-business-card-head {
+  color: #9a6b37;
+}
+
+.organization720-business-card.technologies
+.organization720-business-card-head {
+  color: #7457ff;
+}
+
+
+.organization720-business-restricted {
+  display: flex;
+  align-items: center;
+
+  min-height: 74px;
+
+  margin-top: 5px;
+
+  padding: 10px;
+
+  border-radius: 10px;
+
+  background:
+    rgba(148, 163, 184, 0.075);
+
+  font-size: 11px;
+  line-height: 1.4;
+
+  color: #7b8290;
+}
+
+
+@media (
+  max-width: 1180px
+) {
+  .organization720-business-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+
+@media (
+  max-width: 820px
+) {
+  .organization720-business-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (
+  max-width: 560px
+) {
+  .organization720-business-grid {
+    grid-template-columns:
+      1fr;
+  }
+}

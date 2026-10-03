@@ -10,7 +10,10 @@ from app.core.database import get_db
 from app.dependencies.auth import (
     get_current_auth_context,
 )
+from app.models.action import Action
 from app.models.contact import Contact
+from app.models.lead import Lead
+from app.models.opportunity import Opportunity
 from app.models.contact_organization import (
     ContactOrganization,
 )
@@ -21,6 +24,9 @@ from app.schemas.auth import (
     AuthContextResponse,
 )
 from app.schemas.organization_720 import (
+    Organization720BusinessContextSummary,
+    Organization720BusinessSummary,
+    Organization720CommercialSummary,
     Organization720ContactRelation,
     Organization720ContactSummary,
     Organization720DataQuality,
@@ -386,6 +392,263 @@ def build_provenance(
     )
 
 
+def is_direction(
+    auth: AuthContextResponse,
+) -> bool:
+    return (
+        auth.account_type
+        == "internal"
+        and auth.projection
+        == "direction"
+    )
+
+
+def can_access_business_context(
+    auth: AuthContextResponse,
+    context: str,
+) -> bool:
+    if is_direction(
+        auth
+    ):
+        return True
+
+    return (
+        auth.projection
+        == context
+    )
+
+
+def build_commercial_summary(
+    db: Session,
+    organization: Organization,
+    accessible: bool,
+) -> Organization720CommercialSummary:
+    if not accessible:
+        return (
+            Organization720CommercialSummary(
+                accessible=False,
+                leads=0,
+                qualified_leads=0,
+                opportunities=0,
+                active_opportunities=0,
+                pipeline_by_currency={},
+            )
+        )
+
+    leads = db.scalars(
+        select(
+            Lead
+        )
+        .where(
+            Lead.organization_id
+            == organization.id
+        )
+    ).all()
+
+    opportunities = db.scalars(
+        select(
+            Opportunity
+        )
+        .where(
+            Opportunity.organization_id
+            == organization.id
+        )
+    ).all()
+
+    active_opportunities = [
+        opportunity
+        for opportunity
+        in opportunities
+        if opportunity.stage
+        not in {
+            "won",
+            "lost",
+            "cancelled",
+        }
+    ]
+
+    pipeline_by_currency: dict[
+        str,
+        float,
+    ] = {}
+
+    for opportunity in (
+        active_opportunities
+    ):
+        if (
+            opportunity.estimated_value
+            is None
+        ):
+            continue
+
+        currency = (
+            opportunity.currency
+            or "CHF"
+        )
+
+        pipeline_by_currency[
+            currency
+        ] = (
+            pipeline_by_currency.get(
+                currency,
+                0.0,
+            )
+            + float(
+                opportunity
+                .estimated_value
+            )
+        )
+
+    qualified_leads = sum(
+        1
+        for lead in leads
+        if lead.status
+        in {
+            "qualified",
+            "converted",
+        }
+    )
+
+    return (
+        Organization720CommercialSummary(
+            accessible=True,
+            leads=len(
+                leads
+            ),
+            qualified_leads=(
+                qualified_leads
+            ),
+            opportunities=len(
+                opportunities
+            ),
+            active_opportunities=len(
+                active_opportunities
+            ),
+            pipeline_by_currency=(
+                pipeline_by_currency
+            ),
+        )
+    )
+
+
+def build_context_summary(
+    db: Session,
+    organization: Organization,
+    context: str,
+    accessible: bool,
+) -> Organization720BusinessContextSummary:
+    if not accessible:
+        return (
+            Organization720BusinessContextSummary(
+                context=context,
+                accessible=False,
+                active_actions=0,
+                total_actions=0,
+                module_connected=False,
+            )
+        )
+
+    actions = db.scalars(
+        select(
+            Action
+        )
+        .where(
+            Action.organization_id
+            == organization.id,
+            Action.context
+            == context,
+        )
+    ).all()
+
+    active_actions = sum(
+        1
+        for action in actions
+        if action.status
+        in {
+            "todo",
+            "in_progress",
+            "blocked",
+        }
+    )
+
+    return (
+        Organization720BusinessContextSummary(
+            context=context,
+            accessible=True,
+            active_actions=(
+                active_actions
+            ),
+            total_actions=len(
+                actions
+            ),
+            module_connected=False,
+        )
+    )
+
+
+def build_business_summary(
+    db: Session,
+    organization: Organization,
+    auth: AuthContextResponse,
+) -> Organization720BusinessSummary:
+    return Organization720BusinessSummary(
+        commercial=(
+            build_commercial_summary(
+                db,
+                organization,
+                can_access_business_context(
+                    auth,
+                    "commercial",
+                ),
+            )
+        ),
+        assurance=(
+            build_context_summary(
+                db,
+                organization,
+                "assurance",
+                can_access_business_context(
+                    auth,
+                    "assurance",
+                ),
+            )
+        ),
+        investissement=(
+            build_context_summary(
+                db,
+                organization,
+                "investissement",
+                can_access_business_context(
+                    auth,
+                    "investissement",
+                ),
+            )
+        ),
+        fiduciaire=(
+            build_context_summary(
+                db,
+                organization,
+                "fiduciaire",
+                can_access_business_context(
+                    auth,
+                    "fiduciaire",
+                ),
+            )
+        ),
+        technologies=(
+            build_context_summary(
+                db,
+                organization,
+                "technologies",
+                can_access_business_context(
+                    auth,
+                    "technologies",
+                ),
+            )
+        ),
+    )
+
+
 @router.get(
     "/{organization_id}/720",
     response_model=(
@@ -435,6 +698,13 @@ def get_organization_720_projection(
         provenance=(
             build_provenance(
                 organization
+            )
+        ),
+        business_summary=(
+            build_business_summary(
+                db,
+                organization,
+                auth,
             )
         ),
     )

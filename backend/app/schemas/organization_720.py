@@ -67,6 +67,59 @@ class Organization720Provenance(
     last_verified_at: datetime | None
 
 
+class Organization720CommercialSummary(
+    BaseModel
+):
+    accessible: bool
+
+    leads: int
+    qualified_leads: int
+
+    opportunities: int
+    active_opportunities: int
+
+    pipeline_by_currency: dict[
+        str,
+        float,
+    ]
+
+
+class Organization720BusinessContextSummary(
+    BaseModel
+):
+    context: str
+    accessible: bool
+
+    active_actions: int
+    total_actions: int
+
+    module_connected: bool
+
+
+class Organization720BusinessSummary(
+    BaseModel
+):
+    commercial: (
+        Organization720CommercialSummary
+    )
+
+    assurance: (
+        Organization720BusinessContextSummary
+    )
+
+    investissement: (
+        Organization720BusinessContextSummary
+    )
+
+    fiduciaire: (
+        Organization720BusinessContextSummary
+    )
+
+    technologies: (
+        Organization720BusinessContextSummary
+    )
+
+
 class Organization720Projection(
     BaseModel
 ):
@@ -86,4 +139,8 @@ class Organization720Projection(
 
     provenance: (
         Organization720Provenance
+    )
+
+    business_summary: (
+        Organization720BusinessSummary
     )

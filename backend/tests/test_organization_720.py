@@ -1,5 +1,17 @@
+from app.api.organization_720 import (
+    build_commercial_summary,
+)
+from app.models.action import (
+    Action,
+)
 from app.models.auth_account import (
     AuthAccount,
+)
+from app.models.lead import (
+    Lead,
+)
+from app.models.opportunity import (
+    Opportunity,
 )
 from app.models.contact import (
     Contact,
@@ -685,4 +697,203 @@ def test_unknown_organization_returns_404(
     assert (
         response.status_code
         == 404
+    )
+
+
+def test_organization_720_real_commercial_summary(
+    db_session,
+):
+    organization = Organization(
+        name="Pipeline Company SA",
+        organization_type="company",
+        source_type="manual",
+        is_active=True,
+    )
+
+    db_session.add(
+        organization
+    )
+    db_session.flush()
+
+    lead = Lead(
+        organization_id=(
+            organization.id
+        ),
+        source="manual",
+        status="qualified",
+        estimated_value=50000,
+        currency="CHF",
+    )
+
+    db_session.add(
+        lead
+    )
+    db_session.flush()
+
+    opportunity = Opportunity(
+        lead_id=lead.id,
+        organization_id=(
+            organization.id
+        ),
+        name="Transformation digitale",
+        stage="proposal",
+        estimated_value=45000,
+        currency="CHF",
+        probability=60,
+    )
+
+    db_session.add(
+        opportunity
+    )
+    db_session.commit()
+
+    summary = (
+        build_commercial_summary(
+            db_session,
+            organization,
+            True,
+        )
+    )
+
+    assert (
+        summary.accessible
+        is True
+    )
+
+    assert (
+        summary.leads
+        == 1
+    )
+
+    assert (
+        summary.qualified_leads
+        == 1
+    )
+
+    assert (
+        summary.opportunities
+        == 1
+    )
+
+    assert (
+        summary.active_opportunities
+        == 1
+    )
+
+    assert (
+        summary.pipeline_by_currency[
+            "CHF"
+        ]
+        == 45000
+    )
+
+
+def test_organization_720_business_summary_respects_context(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        organization,
+        _,
+        _,
+        _,
+    ) = create_organization_graph(
+        db_session
+    )
+
+    db_session.add_all(
+        [
+            Action(
+                title="Analyser renouvellement",
+                context="assurance",
+                organization_id=(
+                    organization.id
+                ),
+                status="todo",
+                priority="high",
+                source_type="manual",
+            ),
+            Action(
+                title="Contrôle terminé",
+                context="assurance",
+                organization_id=(
+                    organization.id
+                ),
+                status="done",
+                priority="medium",
+                source_type="manual",
+            ),
+            Action(
+                title="Projet technique",
+                context="technologies",
+                organization_id=(
+                    organization.id
+                ),
+                status="todo",
+                priority="medium",
+                source_type="manual",
+            ),
+        ]
+    )
+
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/organizations/"
+            f"{organization.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert (
+        response.status_code
+        == 200
+    )
+
+    summary = response.json()[
+        "business_summary"
+    ]
+
+    assert (
+        summary["assurance"][
+            "accessible"
+        ]
+        is True
+    )
+
+    assert (
+        summary["assurance"][
+            "active_actions"
+        ]
+        == 1
+    )
+
+    assert (
+        summary["assurance"][
+            "total_actions"
+        ]
+        == 2
+    )
+
+    assert (
+        summary["technologies"][
+            "accessible"
+        ]
+        is False
+    )
+
+    assert (
+        summary["commercial"][
+            "accessible"
+        ]
+        is False
     )

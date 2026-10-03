@@ -1,12 +1,16 @@
 import {
   ArrowLeft,
   Building2,
+  Calculator,
   CalendarDays,
   CircleCheck,
   Database,
+  Handshake,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   UserRound,
   Users,
 } from "lucide-react"
@@ -412,6 +416,51 @@ function formatCoreDate(
 }
 
 
+function formatBusinessMoney(
+  value: number,
+  currency: string,
+) {
+  return new Intl.NumberFormat(
+    "fr-CH",
+    {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    },
+  ).format(value)
+}
+
+
+function commercialPipelineLabel(
+  pipeline:
+    Record<string, number>,
+) {
+  const entries =
+    Object.entries(
+      pipeline,
+    )
+
+  if (!entries.length) {
+    return "Aucun pipeline actif"
+  }
+
+  return entries
+    .map(
+      (
+        [
+          currency,
+          value,
+        ],
+      ) =>
+        formatBusinessMoney(
+          value,
+          currency,
+        ),
+    )
+    .join(" · ")
+}
+
+
 export function Organization720Page() {
   const {
     organizationId,
@@ -637,6 +686,7 @@ export function Organization720Page() {
     data_quality: dataQuality,
     provenance,
     contacts,
+    business_summary: businessSummary,
   } = organization720
 
 
@@ -987,6 +1037,357 @@ export function Organization720Page() {
                       : "Vérification à compléter"
                   }
                 />
+              </section>
+
+
+              <section className="organization720-business-section">
+                <div className="organization720-business-heading">
+                  <div>
+                    <span className="eyebrow">
+                      Vue transverse
+                    </span>
+
+                    <h2>
+                      Activité par métier
+                    </h2>
+
+                    <p>
+                      Résumés issus uniquement des données
+                      réellement rattachées à cette organisation.
+                    </p>
+                  </div>
+                </div>
+
+
+                <div className="organization720-business-grid">
+                  <article className="organization720-business-card commercial">
+                    <div className="organization720-business-card-head">
+                      <Handshake
+                        size={20}
+                      />
+
+                      <span>
+                        Commercial
+                      </span>
+                    </div>
+
+                    {
+                      businessSummary
+                        .commercial
+                        .accessible
+                        ? (
+                          <>
+                            <strong>
+                              {
+                                businessSummary
+                                  .commercial
+                                  .active_opportunities
+                              }
+                              {" opportunité"}
+                              {
+                                businessSummary
+                                  .commercial
+                                  .active_opportunities
+                                > 1
+                                  ? "s actives"
+                                  : " active"
+                              }
+                            </strong>
+
+                            <span>
+                              {
+                                commercialPipelineLabel(
+                                  businessSummary
+                                    .commercial
+                                    .pipeline_by_currency,
+                                )
+                              }
+                            </span>
+
+                            <small>
+                              {
+                                businessSummary
+                                  .commercial
+                                  .leads
+                              }
+                              {" lead"}
+                              {
+                                businessSummary
+                                  .commercial
+                                  .leads
+                                > 1
+                                  ? "s"
+                                  : ""
+                              }
+                              {" · "}
+                              {
+                                businessSummary
+                                  .commercial
+                                  .qualified_leads
+                              }
+                              {" qualifié"}
+                              {
+                                businessSummary
+                                  .commercial
+                                  .qualified_leads
+                                > 1
+                                  ? "s"
+                                  : ""
+                              }
+                              {" · Growth Engine"}
+                            </small>
+                          </>
+                        )
+                        : (
+                          <div className="organization720-business-restricted">
+                            Vue disponible dans le contexte Commercial
+                            ou Direction.
+                          </div>
+                        )
+                    }
+                  </article>
+
+
+                  <article className="organization720-business-card assurance">
+                    <div className="organization720-business-card-head">
+                      <ShieldCheck
+                        size={20}
+                      />
+
+                      <span>
+                        Assurance
+                      </span>
+                    </div>
+
+                    {
+                      businessSummary
+                        .assurance
+                        .accessible
+                        ? (
+                          <>
+                            <strong>
+                              {
+                                businessSummary
+                                  .assurance
+                                  .active_actions
+                              }
+                              {" action"}
+                              {
+                                businessSummary
+                                  .assurance
+                                  .active_actions
+                                > 1
+                                  ? "s actives"
+                                  : " active"
+                              }
+                            </strong>
+
+                            <span>
+                              {
+                                businessSummary
+                                  .assurance
+                                  .total_actions
+                              }
+                              {" action"}
+                              {
+                                businessSummary
+                                  .assurance
+                                  .total_actions
+                                > 1
+                                  ? "s"
+                                  : ""
+                              }
+                              {" au total"}
+                            </span>
+
+                            <small>
+                              Module métier à connecter
+                            </small>
+                          </>
+                        )
+                        : (
+                          <div className="organization720-business-restricted">
+                            Vue disponible dans le contexte Assurance
+                            ou Direction.
+                          </div>
+                        )
+                    }
+                  </article>
+
+
+                  <article className="organization720-business-card investissement">
+                    <div className="organization720-business-card-head">
+                      <TrendingUp
+                        size={20}
+                      />
+
+                      <span>
+                        Investissement
+                      </span>
+                    </div>
+
+                    {
+                      businessSummary
+                        .investissement
+                        .accessible
+                        ? (
+                          <>
+                            <strong>
+                              {
+                                businessSummary
+                                  .investissement
+                                  .active_actions
+                              }
+                              {" action"}
+                              {
+                                businessSummary
+                                  .investissement
+                                  .active_actions
+                                > 1
+                                  ? "s actives"
+                                  : " active"
+                              }
+                            </strong>
+
+                            <span>
+                              {
+                                businessSummary
+                                  .investissement
+                                  .total_actions
+                              }
+                              {" au total"}
+                            </span>
+
+                            <small>
+                              Module métier à connecter
+                            </small>
+                          </>
+                        )
+                        : (
+                          <div className="organization720-business-restricted">
+                            Vue disponible dans le contexte Investissement
+                            ou Direction.
+                          </div>
+                        )
+                    }
+                  </article>
+
+
+                  <article className="organization720-business-card fiduciaire">
+                    <div className="organization720-business-card-head">
+                      <Calculator
+                        size={20}
+                      />
+
+                      <span>
+                        Fiduciaire
+                      </span>
+                    </div>
+
+                    {
+                      businessSummary
+                        .fiduciaire
+                        .accessible
+                        ? (
+                          <>
+                            <strong>
+                              {
+                                businessSummary
+                                  .fiduciaire
+                                  .active_actions
+                              }
+                              {" action"}
+                              {
+                                businessSummary
+                                  .fiduciaire
+                                  .active_actions
+                                > 1
+                                  ? "s actives"
+                                  : " active"
+                              }
+                            </strong>
+
+                            <span>
+                              {
+                                businessSummary
+                                  .fiduciaire
+                                  .total_actions
+                              }
+                              {" au total"}
+                            </span>
+
+                            <small>
+                              Module métier à connecter
+                            </small>
+                          </>
+                        )
+                        : (
+                          <div className="organization720-business-restricted">
+                            Vue disponible dans le contexte Fiduciaire
+                            ou Direction.
+                          </div>
+                        )
+                    }
+                  </article>
+
+
+                  <article className="organization720-business-card technologies">
+                    <div className="organization720-business-card-head">
+                      <Sparkles
+                        size={20}
+                      />
+
+                      <span>
+                        Technologies
+                      </span>
+                    </div>
+
+                    {
+                      businessSummary
+                        .technologies
+                        .accessible
+                        ? (
+                          <>
+                            <strong>
+                              {
+                                businessSummary
+                                  .technologies
+                                  .active_actions
+                              }
+                              {" action"}
+                              {
+                                businessSummary
+                                  .technologies
+                                  .active_actions
+                                > 1
+                                  ? "s actives"
+                                  : " active"
+                              }
+                            </strong>
+
+                            <span>
+                              {
+                                businessSummary
+                                  .technologies
+                                  .total_actions
+                              }
+                              {" au total"}
+                            </span>
+
+                            <small>
+                              Module métier à connecter
+                            </small>
+                          </>
+                        )
+                        : (
+                          <div className="organization720-business-restricted">
+                            Vue disponible dans le contexte Technologies
+                            ou Direction.
+                          </div>
+                        )
+                    }
+                  </article>
+                </div>
               </section>
 
 
