@@ -34,6 +34,9 @@ from app.api.ingestion import router as ingestion_router
 from app.api.leads import router as leads_router
 from app.api.opportunities import router as opportunities_router
 from app.api.organizations import router as organizations_router
+from app.api.organization_720 import (
+    router as organization_720_router,
+)
 
 
 Base.metadata.create_all(bind=engine)
@@ -65,6 +68,7 @@ app.include_router(contacts_router)
 app.include_router(deduplication_router)
 app.include_router(ingestion_router)
 app.include_router(organizations_router)
+app.include_router(organization_720_router)
 app.include_router(contact_organizations_router)
 app.include_router(client_actions_router)
 app.include_router(client_720_router)
