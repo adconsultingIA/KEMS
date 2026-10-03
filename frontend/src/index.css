@@ -6771,3 +6771,79 @@ h3 {
       auto;
   }
 }
+
+/* =========================================================
+   C06.6 — REAL BUSINESS SUMMARIES
+   ========================================================= */
+
+.business-card-source {
+  display: block;
+
+  margin-top: 8px;
+
+  color: #9296a3;
+
+  font-size: 8px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.business-card strong {
+  overflow-wrap: anywhere;
+}
+
+.business-card p {
+  min-height: 16px;
+}
+
+/* =========================================================
+   C06.7 — FINAL CLIENT 720 CLEANUP
+   ========================================================= */
+
+.core-attention-empty {
+  min-height: 62px;
+}
+
+.metric-grid .metric-card strong {
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   C06.7 — REAL REGISTRY + SAFE CLIENT 720 NAVIGATION
+   ========================================================= */
+
+.registry-state,
+.client720-page-state {
+  min-height: 240px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  text-align: center;
+
+  color: var(--muted);
+}
+
+.registry-state strong,
+.client720-page-state strong {
+  color: #20222a;
+}
+
+.registry-state.error,
+.client720-page-state.error {
+  color: #b42318;
+}
+
+.client720-page-state .button {
+  margin-top: 10px;
+}
+
+.metric-grid .metric-card strong {
+  overflow-wrap: anywhere;
+}

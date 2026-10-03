@@ -126,6 +126,53 @@ function locationLabel(
 }
 
 
+function formatMoney(
+  value: number,
+  currency: string,
+) {
+  return new Intl.NumberFormat(
+    "fr-CH",
+    {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    },
+  ).format(value)
+}
+
+
+function commercialPipelineLabel(
+  pipeline: Record<
+    string,
+    number
+  >,
+) {
+  const entries =
+    Object.entries(
+      pipeline,
+    )
+
+  if (!entries.length) {
+    return "Aucun pipeline actif"
+  }
+
+  return entries
+    .map(
+      (
+        [
+          currency,
+          value,
+        ],
+      ) =>
+        formatMoney(
+          value,
+          currency,
+        ),
+    )
+    .join(" · ")
+}
+
+
 function formatCoreDate(
   value: string | null,
 ) {
@@ -711,6 +758,91 @@ export function Client720Page() {
       },
     ) ?? []
 
+  const activeBusinessContexts =
+    client720
+      ? [
+          {
+            context:
+              "commercial",
+            hasData:
+              (
+                client720.business_summary
+                  .commercial.leads
+                > 0
+              )
+              || (
+                client720.business_summary
+                  .commercial.opportunities
+                > 0
+              ),
+          },
+          {
+            context:
+              "assurance",
+            hasData:
+              client720.business_summary
+                .assurance.total_actions
+              > 0,
+          },
+          {
+            context:
+              "investissement",
+            hasData:
+              client720.business_summary
+                .investissement.total_actions
+              > 0,
+          },
+          {
+            context:
+              "fiduciaire",
+            hasData:
+              client720.business_summary
+                .fiduciaire.total_actions
+              > 0,
+          },
+          {
+            context:
+              "technologies",
+            hasData:
+              client720.business_summary
+                .technologies.total_actions
+              > 0,
+          },
+        ]
+          .filter(
+            (
+              item,
+            ) =>
+              item.hasData,
+          )
+          .map(
+            (
+              item,
+            ) =>
+              item.context,
+          )
+      : []
+
+  const hasCoreAttention =
+    Boolean(
+      client720
+      && (
+        !client720.data_quality
+          .is_verified
+        || client720.data_quality
+          .missing_fields.length
+          > 0
+        || client720
+          .affiliation_summary
+          .has_multiple_active_affiliations
+        || (
+          client720.organization
+          && !client720.organization
+            .is_verified
+        )
+      ),
+    )
+
   const historyActivities =
     activities.filter(
       (
@@ -898,6 +1030,83 @@ export function Client720Page() {
   )
 
 
+  if (
+    client720Loading
+    && !client720
+  ) {
+    return (
+      <div className="page-stack">
+        <Link
+          to="/hub/contacts"
+          className="back-link"
+        >
+          <ArrowLeft
+            size={16}
+          />
+
+          Contact Registry
+        </Link>
+
+        <section className="panel client720-page-state">
+          <RefreshCw
+            size={22}
+          />
+
+          <strong>
+            Chargement du Client 720°...
+          </strong>
+
+          <span>
+            Lecture des données KEMS Core.
+          </span>
+        </section>
+      </div>
+    )
+  }
+
+
+  if (
+    client720Error
+    && !client720
+  ) {
+    return (
+      <div className="page-stack">
+        <Link
+          to="/hub/contacts"
+          className="back-link"
+        >
+          <ArrowLeft
+            size={16}
+          />
+
+          Contact Registry
+        </Link>
+
+        <section className="panel client720-page-state error">
+          <ShieldAlert
+            size={24}
+          />
+
+          <strong>
+            Client 720° indisponible
+          </strong>
+
+          <span>
+            {client720Error}
+          </span>
+
+          <Link
+            to="/hub/contacts"
+            className="button secondary"
+          >
+            Retour au Contact Registry
+          </Link>
+        </section>
+      </div>
+    )
+  }
+
+
   return (
     <div className="page-stack">
       <Link to="/hub/contacts" className="back-link">
@@ -1012,13 +1221,25 @@ export function Client720Page() {
                     }
                   </StatusBadge>
 
-                  <StatusBadge>
-                    Assurance
-                  </StatusBadge>
-
-                  <StatusBadge>
-                    Investissement
-                  </StatusBadge>
+                  {
+                    activeBusinessContexts.map(
+                      (
+                        context,
+                      ) => (
+                        <StatusBadge
+                          key={
+                            context
+                          }
+                        >
+                          {
+                            contextLabel(
+                              context,
+                            )
+                          }
+                        </StatusBadge>
+                      ),
+                    )
+                  }
                 </div>
               </div>
             </div>
@@ -1171,10 +1392,33 @@ export function Client720Page() {
       >
       <section className="metric-grid three">
         <MetricCard
-          label="Relationship Health"
-          value="88/100"
-          hint="Relation forte"
+          label="Affiliations actives"
+          value={
+            client720
+              ? String(
+                  client720
+                    .affiliation_summary
+                    .active_relations,
+                )
+              : "—"
+          }
+          hint={
+            client720
+              ? (
+                `${client720.affiliation_summary.total_relations} affiliation${
+                  client720.affiliation_summary.total_relations > 1
+                    ? "s"
+                    : ""
+                } connue${
+                  client720.affiliation_summary.total_relations > 1
+                    ? "s"
+                    : ""
+                }`
+              )
+              : "Chargement..."
+          }
         />
+
         <MetricCard
           label="Data Quality"
           value={
@@ -1190,10 +1434,31 @@ export function Client720Page() {
               : "Vérification à compléter"
           }
         />
+
         <MetricCard
-          label="Activité"
-          value="Active"
-          hint="Dernier contact aujourd'hui"
+          label="Activités visibles"
+          value={
+            activitiesLoading
+              ? "—"
+              : String(
+                  activities.length,
+                )
+          }
+          hint={
+            activities.length
+              ? (
+                `Dernière activité : ${
+                  formatActivityDate(
+                    activities[0].created_at,
+                  )
+                }`
+              )
+              : (
+                activitiesLoading
+                  ? "Chargement..."
+                  : "Aucune activité dans ce contexte"
+              )
+          }
         />
       </section>
 
@@ -1411,31 +1676,198 @@ export function Client720Page() {
 
       <section className="business-cards">
         <div className="business-card">
-          <BriefcaseBusiness size={22} />
-          <span>Commercial</span>
-          <strong>3 opportunités</strong>
-          <p>CHF 85'000 de pipeline actif</p>
+          <BriefcaseBusiness
+            size={22}
+          />
+
+          <span>
+            Commercial
+          </span>
+
+          <strong>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.commercial.active_opportunities} opportunité${
+                    client720.business_summary.commercial.active_opportunities > 1
+                      ? "s"
+                      : ""
+                  } active${
+                    client720.business_summary.commercial.active_opportunities > 1
+                      ? "s"
+                      : ""
+                  }`
+                )
+                : "—"
+            }
+          </strong>
+
+          <p>
+            {
+              client720
+                ? commercialPipelineLabel(
+                    client720.business_summary
+                      .commercial
+                      .pipeline_by_currency,
+                  )
+                : "Chargement..."
+            }
+          </p>
+
+          {client720 ? (
+            <small className="business-card-source">
+              {
+                client720.business_summary
+                  .commercial.leads
+              }
+              {" lead"}
+              {
+                client720.business_summary
+                  .commercial.leads > 1
+                  ? "s"
+                  : ""
+              }
+              {" · données Growth Engine"}
+            </small>
+          ) : null}
         </div>
 
         <div className="business-card">
-          <ShieldCheck size={22} />
-          <span>Assurance</span>
-          <strong>2 contrats actifs</strong>
-          <p>1 renouvellement prochain</p>
+          <ShieldCheck
+            size={22}
+          />
+
+          <span>
+            Assurance
+          </span>
+
+          <strong>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.assurance.active_actions} action${
+                    client720.business_summary.assurance.active_actions > 1
+                      ? "s"
+                      : ""
+                  } active${
+                    client720.business_summary.assurance.active_actions > 1
+                      ? "s"
+                      : ""
+                  }`
+                )
+                : "—"
+            }
+          </strong>
+
+          <p>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.assurance.total_actions} action${
+                    client720.business_summary.assurance.total_actions > 1
+                      ? "s"
+                      : ""
+                  } au total`
+                )
+                : "Chargement..."
+            }
+          </p>
+
+          <small className="business-card-source">
+            Module métier à connecter
+          </small>
         </div>
 
         <div className="business-card">
-          <TrendingUp size={22} />
-          <span>Investissement</span>
-          <strong>1 dossier actif</strong>
-          <p>Profil investisseur modéré</p>
+          <TrendingUp
+            size={22}
+          />
+
+          <span>
+            Investissement
+          </span>
+
+          <strong>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.investissement.active_actions} action${
+                    client720.business_summary.investissement.active_actions > 1
+                      ? "s"
+                      : ""
+                  } active${
+                    client720.business_summary.investissement.active_actions > 1
+                      ? "s"
+                      : ""
+                  }`
+                )
+                : "—"
+            }
+          </strong>
+
+          <p>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.investissement.total_actions} action${
+                    client720.business_summary.investissement.total_actions > 1
+                      ? "s"
+                      : ""
+                  } au total`
+                )
+                : "Chargement..."
+            }
+          </p>
+
+          <small className="business-card-source">
+            Module métier à connecter
+          </small>
         </div>
 
         <div className="business-card">
-          <Building2 size={22} />
-          <span>Fiduciaire</span>
-          <strong>Aucun mandat</strong>
-          <p>Potentiel à explorer</p>
+          <Building2
+            size={22}
+          />
+
+          <span>
+            Fiduciaire
+          </span>
+
+          <strong>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.fiduciaire.active_actions} action${
+                    client720.business_summary.fiduciaire.active_actions > 1
+                      ? "s"
+                      : ""
+                  } active${
+                    client720.business_summary.fiduciaire.active_actions > 1
+                      ? "s"
+                      : ""
+                  }`
+                )
+                : "—"
+            }
+          </strong>
+
+          <p>
+            {
+              client720
+                ? (
+                  `${client720.business_summary.fiduciaire.total_actions} action${
+                    client720.business_summary.fiduciaire.total_actions > 1
+                      ? "s"
+                      : ""
+                  } au total`
+                )
+                : "Chargement..."
+            }
+          </p>
+
+          <small className="business-card-source">
+            Module métier à connecter
+          </small>
         </div>
       </section>
 
@@ -1443,43 +1875,173 @@ export function Client720Page() {
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">Pilotage</span>
-              <h2>À surveiller</h2>
+              <span className="eyebrow">Pilotage Core</span>
+              <h2>Points d'attention</h2>
             </div>
           </div>
 
           <div className="watch-list">
-            <div className="watch-item warning">
-              <Clock3 size={18} />
-              <div>
-                <strong>Renouvellement Assurance</strong>
-                <span>Échéance dans 27 jours</span>
-              </div>
-            </div>
+            {
+              client720
+                ? (
+                  <>
+                    {
+                      !client720.data_quality
+                        .is_verified
+                        ? (
+                          <div className="watch-item warning">
+                            <ShieldAlert
+                              size={18}
+                            />
 
-            <div className="watch-item">
-              <BriefcaseBusiness size={18} />
-              <div>
-                <strong>Opportunité CHF 45'000</strong>
-                <span>Sans activité depuis 8 jours</span>
-              </div>
-            </div>
+                            <div>
+                              <strong>
+                                Contact non vérifié
+                              </strong>
 
-            <div className="watch-item">
-              <FileText size={18} />
-              <div>
-                <strong>LinkedIn non vérifié</strong>
-                <span>Compléter la qualité du contact</span>
-              </div>
-            </div>
+                              <span>
+                                Les données sont complètes mais
+                                doivent encore être validées.
+                              </span>
+                            </div>
+                          </div>
+                        )
+                        : null
+                    }
 
-            <div className="watch-item success">
-              <CircleCheck size={18} />
-              <div>
-                <strong>Dossier Investissement</strong>
-                <span>À jour</span>
-              </div>
-            </div>
+                    {
+                      client720.data_quality
+                        .missing_fields.length
+                        ? (
+                          <div className="watch-item warning">
+                            <FileText
+                              size={18}
+                            />
+
+                            <div>
+                              <strong>
+                                Données à compléter
+                              </strong>
+
+                              <span>
+                                {
+                                  client720.data_quality
+                                    .missing_fields
+                                    .map(
+                                      (
+                                        field,
+                                      ) =>
+                                        missingFieldLabel(
+                                          field,
+                                        ),
+                                    )
+                                    .join(", ")
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        )
+                        : null
+                    }
+
+                    {
+                      client720
+                        .affiliation_summary
+                        .has_multiple_active_affiliations
+                        ? (
+                          <div className="watch-item">
+                            <Building2
+                              size={18}
+                            />
+
+                            <div>
+                              <strong>
+                                Plusieurs affiliations actives
+                              </strong>
+
+                              <span>
+                                {
+                                  client720
+                                    .affiliation_summary
+                                    .active_relations
+                                }
+                                {" organisations actives liées à ce contact."}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                        : null
+                    }
+
+                    {
+                      client720.organization
+                      && !client720.organization
+                        .is_verified
+                        ? (
+                          <div className="watch-item warning">
+                            <Building2
+                              size={18}
+                            />
+
+                            <div>
+                              <strong>
+                                Organisation non vérifiée
+                              </strong>
+
+                              <span>
+                                {
+                                  client720.organization.name
+                                }
+                                {" doit encore être validée dans Core."}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                        : null
+                    }
+
+                    {
+                      !hasCoreAttention
+                        ? (
+                          <div className="watch-item success core-attention-empty">
+                            <CircleCheck
+                              size={18}
+                            />
+
+                            <div>
+                              <strong>
+                                Aucun point d'attention Core
+                              </strong>
+
+                              <span>
+                                Les informations essentielles
+                                disponibles sont à jour.
+                              </span>
+                            </div>
+                          </div>
+                        )
+                        : null
+                    }
+                  </>
+                )
+                : (
+                  <div className="watch-item">
+                    <RefreshCw
+                      size={18}
+                    />
+
+                    <div>
+                      <strong>
+                        Chargement
+                      </strong>
+
+                      <span>
+                        Lecture des points d'attention Core...
+                      </span>
+                    </div>
+                  </div>
+                )
+            }
           </div>
         </div>
 
