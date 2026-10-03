@@ -3,8 +3,10 @@ import {
   Building2,
   CalendarDays,
   CircleCheck,
+  Database,
   RefreshCw,
   ShieldAlert,
+  ShieldCheck,
   UserRound,
   Users,
 } from "lucide-react"
@@ -343,6 +345,70 @@ function relationPeriodLabel(
   }
 
   return "Période non renseignée"
+}
+
+
+function qualityFieldLabel(
+  field: string,
+) {
+  const labels:
+    Record<string, string> = {
+      legal_name:
+        "Raison sociale",
+      industry:
+        "Secteur",
+      website:
+        "Site web",
+      email:
+        "Email",
+      phone:
+        "Téléphone",
+      country:
+        "Pays",
+      city:
+        "Ville",
+      address:
+        "Adresse",
+    }
+
+  return (
+    labels[field]
+    ?? field.replaceAll(
+      "_",
+      " ",
+    )
+  )
+}
+
+
+function formatCoreDate(
+  value: string | null,
+) {
+  if (!value) {
+    return "Jamais"
+  }
+
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-CH",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date)
 }
 
 
@@ -921,6 +987,225 @@ export function Organization720Page() {
                       : "Vérification à compléter"
                   }
                 />
+              </section>
+
+
+              <section className="organization720-quality-grid">
+                <div className="panel organization720-quality-card">
+                  <div className="organization720-quality-heading">
+                    <div className="organization720-quality-icon">
+                      <ShieldCheck
+                        size={20}
+                      />
+                    </div>
+
+                    <div>
+                      <span className="eyebrow">
+                        Qualité Core
+                      </span>
+
+                      <h2>
+                        Qualité & vérification
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="organization720-quality-score">
+                    <div>
+                      <strong>
+                        {
+                          dataQuality
+                            .completeness_score
+                        }
+                        %
+                      </strong>
+
+                      <span>
+                        Complétude
+                      </span>
+                    </div>
+
+                    <div>
+                      <strong
+                        className={
+                          dataQuality
+                            .is_verified
+                            ? "is-verified"
+                            : "is-unverified"
+                        }
+                      >
+                        {
+                          dataQuality
+                            .is_verified
+                            ? "Vérifiée"
+                            : "À vérifier"
+                        }
+                      </strong>
+
+                      <span>
+                        Vérification
+                      </span>
+                    </div>
+                  </div>
+
+                  {
+                    dataQuality
+                      .missing_fields
+                      .length
+                      ? (
+                        <div className="organization720-missing">
+                          <div>
+                            <ShieldAlert
+                              size={15}
+                            />
+
+                            <strong>
+                              Informations à compléter
+                            </strong>
+                          </div>
+
+                          <div className="organization720-missing-tags">
+                            {
+                              dataQuality
+                                .missing_fields
+                                .map(
+                                  (
+                                    field,
+                                  ) => (
+                                    <span
+                                      key={
+                                        field
+                                      }
+                                    >
+                                      {
+                                        qualityFieldLabel(
+                                          field,
+                                        )
+                                      }
+                                    </span>
+                                  ),
+                                )
+                            }
+                          </div>
+                        </div>
+                      )
+                      : (
+                        <div className="organization720-complete">
+                          <CircleCheck
+                            size={15}
+                          />
+
+                          Données essentielles complètes
+                        </div>
+                      )
+                  }
+                </div>
+
+
+                <div className="panel organization720-provenance-card">
+                  <div className="organization720-quality-heading">
+                    <div className="organization720-quality-icon provenance">
+                      <Database
+                        size={20}
+                      />
+                    </div>
+
+                    <div>
+                      <span className="eyebrow">
+                        Traçabilité
+                      </span>
+
+                      <h2>
+                        Provenance des données
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="organization720-provenance-list">
+                    <div>
+                      <span>
+                        Source organisation
+                      </span>
+
+                      <strong>
+                        {
+                          sourceLabel(
+                            provenance
+                              .source_type,
+                          )
+                        }
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>
+                        Référence source
+                      </span>
+
+                      <strong>
+                        {
+                          provenance
+                            .source_reference
+                          ?? "Aucune"
+                        }
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>
+                        Collectée le
+                      </span>
+
+                      <strong>
+                        {
+                          formatCoreDate(
+                            provenance
+                              .collected_at,
+                          )
+                        }
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>
+                        Dernière vérification
+                      </span>
+
+                      <strong>
+                        {
+                          formatCoreDate(
+                            provenance
+                              .last_verified_at,
+                          )
+                        }
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="organization720-provenance-meta">
+                    <span>
+                      Type
+                    </span>
+
+                    <strong>
+                      {
+                        organizationTypeLabel(
+                          organization
+                            .organization_type,
+                        )
+                      }
+                    </strong>
+
+                    <small>
+                      Statut Core : {
+                        organization
+                          .is_active
+                          ? "Active"
+                          : "Inactive"
+                      }
+                    </small>
+                  </div>
+                </div>
               </section>
 
 
