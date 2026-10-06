@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine
 from app.models import (
     Activity,
+    AuditEvent,
     Action,
     AuthAccount,
     AuthSession,
@@ -22,6 +23,9 @@ from app.models import (
 from app.api.activities import router as activities_router
 from app.api.actions import router as actions_router
 from app.api.auth import router as auth_router
+from app.api.audit_events import (
+    router as audit_events_router,
+)
 from app.api.client_actions import router as client_actions_router
 from app.api.client_720 import router as client_720_router
 from app.api.contact_organizations import (
@@ -33,6 +37,7 @@ from app.api.core import router as core_router
 from app.api.ingestion import router as ingestion_router
 from app.api.leads import router as leads_router
 from app.api.opportunities import router as opportunities_router
+from app.api.handoffs import router as handoffs_router
 from app.api.organizations import router as organizations_router
 from app.api.organization_720 import (
     router as organization_720_router,
@@ -61,6 +66,7 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+app.include_router(audit_events_router)
 app.include_router(activities_router)
 app.include_router(actions_router)
 app.include_router(core_router)
@@ -74,6 +80,7 @@ app.include_router(client_actions_router)
 app.include_router(client_720_router)
 app.include_router(leads_router)
 app.include_router(opportunities_router)
+app.include_router(handoffs_router)
 
 
 @app.get("/")

@@ -1,10 +1,12 @@
 import {
+  Building2,
   Download,
   Filter,
   Plus,
   RefreshCw,
   Search,
   ShieldCheck,
+  UserRound,
 } from "lucide-react"
 
 import {
@@ -671,14 +673,51 @@ export function ContactsPage() {
                           </td>
 
                           <td>
-                            <Link
-                              className="row-link"
-                              to={
-                                `/hub/contacts/${contact.id}`
+                            <div className="registry-row-actions">
+                              <Link
+                                className="registry-icon-action"
+                                to={
+                                  `/hub/contacts/${contact.id}`
+                                }
+                                title="Voir Client 720°"
+                                aria-label={
+                                  `Voir Client 720° de ${
+                                    contact.first_name
+                                  } ${
+                                    contact.last_name
+                                  }`
+                                }
+                              >
+                                <UserRound
+                                  size={17}
+                                />
+                              </Link>
+
+                              {
+                                contact.organization_id
+                                  ? (
+                                    <Link
+                                      className="registry-icon-action organization"
+                                      to={
+                                        `/hub/organizations/${contact.organization_id}`
+                                      }
+                                      title="Voir Organization 720°"
+                                      aria-label={
+                                        `Voir Organization 720° liée à ${
+                                          contact.first_name
+                                        } ${
+                                          contact.last_name
+                                        }`
+                                      }
+                                    >
+                                      <Building2
+                                        size={17}
+                                      />
+                                    </Link>
+                                  )
+                                  : null
                               }
-                            >
-                              Voir 720°
-                            </Link>
+                            </div>
                           </td>
                         </tr>
                       )

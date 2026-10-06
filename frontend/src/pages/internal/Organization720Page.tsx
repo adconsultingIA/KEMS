@@ -35,6 +35,8 @@ import {
   StatusBadge,
 } from "../../components/ui/StatusBadge"
 
+import EntityHandoffSnapshot from "../../components/handoffs/EntityHandoffSnapshot"
+
 import {
   useAuth,
 } from "../../hooks/useAuth"
@@ -849,7 +851,7 @@ export function Organization720Page() {
             size={16}
           />
 
-          Organization Registry
+          Organisations
         </Link>
 
         <section className="panel organization720-page-state">
@@ -884,7 +886,7 @@ export function Organization720Page() {
             size={16}
           />
 
-          Organization Registry
+          Organisations
         </Link>
 
         <section className="panel organization720-page-state error">
@@ -1038,7 +1040,7 @@ export function Organization720Page() {
           size={16}
         />
 
-        Organization Registry
+        Organisations
       </Link>
 
 
@@ -1203,9 +1205,18 @@ export function Organization720Page() {
       </section>
 
 
-      <div className="section-tabs">
+      <div
+        className="section-tabs organization720-section-tabs"
+        role="tablist"
+        aria-label="Navigation Organization 720°"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "overview"
+          }
           className={
             activeSection
               === "overview"
@@ -1223,6 +1234,11 @@ export function Organization720Page() {
 
         <button
           type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "contacts"
+          }
           className={
             activeSection
               === "contacts"
@@ -1240,41 +1256,11 @@ export function Organization720Page() {
 
         <button
           type="button"
-          className="tab"
-        >
-          Commercial
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Assurance
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Investissement
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Fiduciaire
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Technologies
-        </button>
-
-        <button
-          type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "history"
+          }
           className={
             activeSection
               === "history"
@@ -1292,11 +1278,122 @@ export function Organization720Page() {
       </div>
 
 
+      <section className="entity720-quick-nav">
+        <div>
+          <span className="eyebrow">
+            Organization 720°
+          </span>
+
+          <p>
+            {
+              activeSection
+                === "overview"
+                ? (
+                  "Vue transverse de l'organisation, "
+                  + "de ses relations et de son activité KEMS."
+                )
+                : activeSection
+                  === "contacts"
+                  ? (
+                    "Contacts, décideurs et affiliations "
+                    + "rattachés à cette organisation."
+                  )
+                  : (
+                    "Historique transverse des événements "
+                    + "rattachés à cette organisation."
+                  )
+            }
+          </p>
+        </div>
+
+        <div className="entity720-quick-actions">
+          {
+            activeSection
+            !== "overview"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "overview",
+                    )
+                  }
+                >
+                  <Building2
+                    size={16}
+                  />
+
+                  Overview
+                </button>
+              )
+              : null
+          }
+
+          {
+            activeSection
+            !== "contacts"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "contacts",
+                    )
+                  }
+                >
+                  <Users
+                    size={16}
+                  />
+
+                  Contacts liés
+                </button>
+              )
+              : null
+          }
+
+          {
+            activeSection
+            !== "history"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "history",
+                    )
+                  }
+                >
+                  <History
+                    size={16}
+                  />
+
+                  Historique
+                </button>
+              )
+              : null
+          }
+        </div>
+      </section>
+
+
       {
         activeSection
         === "overview"
           ? (
             <>
+              <EntityHandoffSnapshot
+                token={
+                  token
+                }
+                organizationId={
+                  organization.id
+                }
+              />
+
+
               <section className="metric-grid three">
                 <MetricCard
                   label="Contacts liés"

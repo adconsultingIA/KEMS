@@ -39,6 +39,34 @@ class Client720Relation(BaseModel):
     organization: OrganizationResponse
 
 
+class Client720CommercialSummary(BaseModel):
+    leads: int
+    qualified_leads: int
+
+    opportunities: int
+    active_opportunities: int
+
+    pipeline_by_currency: dict[str, float]
+
+
+class Client720BusinessContextSummary(BaseModel):
+    context: str
+
+    active_actions: int
+    total_actions: int
+
+    module_connected: bool
+
+
+class Client720BusinessSummary(BaseModel):
+    commercial: Client720CommercialSummary
+
+    assurance: Client720BusinessContextSummary
+    investissement: Client720BusinessContextSummary
+    fiduciaire: Client720BusinessContextSummary
+    technologies: Client720BusinessContextSummary
+
+
 class Client720AffiliationSummary(BaseModel):
     total_relations: int
     active_relations: int
@@ -59,6 +87,8 @@ class Client720Projection(BaseModel):
 
     relations: list[Client720Relation]
     affiliation_summary: Client720AffiliationSummary
+
+    business_summary: Client720BusinessSummary
 
     data_quality: Client720DataQuality
     provenance: Client720Provenance

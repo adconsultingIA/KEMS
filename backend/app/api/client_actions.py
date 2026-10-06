@@ -27,6 +27,9 @@ from app.schemas.auth import (
 from app.services.activity_service import (
     record_action_created_activity,
 )
+from app.services.audit_service import (
+    record_audit_event,
+)
 
 
 router = APIRouter(
@@ -236,6 +239,46 @@ def create_client_advice_request(
         actor_contact_id=(
             contact.id
         ),
+    )
+
+    record_audit_event(
+        db,
+        auth=auth,
+        effective_context=(
+            context
+        ),
+        action_type=(
+            "advice.requested"
+        ),
+        entity_type="action",
+        entity_id=action.id,
+        action_id=action.id,
+        contact_id=contact.id,
+        organization_id=(
+            action.organization_id
+        ),
+        source_type="client_360",
+        source_entity_type=(
+            "advice_request"
+        ),
+        source_entity_id=reference,
+        before_data=None,
+        after_data={
+            "title":
+                action.title,
+            "status":
+                action.status,
+            "priority":
+                action.priority,
+            "context":
+                action.context,
+            "contact_id":
+                action.contact_id,
+            "organization_id":
+                action.organization_id,
+            "reference":
+                reference,
+        },
     )
 
     db.commit()

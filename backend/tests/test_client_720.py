@@ -1,3 +1,4 @@
+from app.models.action import Action
 from app.models.auth_account import (
     AuthAccount,
 )
@@ -5,6 +6,8 @@ from app.models.contact import Contact
 from app.models.contact_organization import (
     ContactOrganization,
 )
+from app.models.lead import Lead
+from app.models.opportunity import Opportunity
 from app.models.organization import Organization
 from app.models.organizational_unit import (
     OrganizationalUnit,
@@ -785,4 +788,204 @@ def test_client_720_affiliation_summary_counts_history(
             "historical_relations"
         ]
         == 1
+    )
+
+
+def test_client_720_commercial_summary_uses_real_data(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        contact,
+        organization,
+    ) = create_client_contact(
+        db_session
+    )
+
+    lead = Lead(
+        contact_id=contact.id,
+        organization_id=organization.id,
+        source="manual",
+        status="qualified",
+        estimated_value=45000,
+        currency="CHF",
+        fit_score=20,
+        intent_score=20,
+        engagement_score=20,
+        potential_score=20,
+    )
+
+    db_session.add(
+        lead
+    )
+    db_session.flush()
+
+    opportunity = Opportunity(
+        lead_id=lead.id,
+        organization_id=organization.id,
+        primary_contact_id=contact.id,
+        name="Assurance entreprise",
+        stage="qualified",
+        estimated_value=45000,
+        currency="CHF",
+        probability=50,
+    )
+
+    db_session.add(
+        opportunity
+    )
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    commercial = response.json()[
+        "business_summary"
+    ][
+        "commercial"
+    ]
+
+    assert (
+        commercial["leads"]
+        == 1
+    )
+
+    assert (
+        commercial[
+            "qualified_leads"
+        ]
+        == 1
+    )
+
+    assert (
+        commercial[
+            "opportunities"
+        ]
+        == 1
+    )
+
+    assert (
+        commercial[
+            "active_opportunities"
+        ]
+        == 1
+    )
+
+    assert (
+        commercial[
+            "pipeline_by_currency"
+        ]["CHF"]
+        == 45000
+    )
+
+
+def test_client_720_business_context_summary_uses_actions(
+    client,
+    db_session,
+):
+    token = create_internal_token(
+        client,
+        db_session,
+    )
+
+    (
+        contact,
+        _,
+    ) = create_client_contact(
+        db_session
+    )
+
+    db_session.add_all(
+        [
+            Action(
+                title="Action Assurance active",
+                context="assurance",
+                status="in_progress",
+                priority="medium",
+                contact_id=contact.id,
+                source_type="test",
+            ),
+            Action(
+                title="Action Assurance terminée",
+                context="assurance",
+                status="done",
+                priority="medium",
+                contact_id=contact.id,
+                source_type="test",
+            ),
+            Action(
+                title="Action Investissement",
+                context="investissement",
+                status="todo",
+                priority="medium",
+                contact_id=contact.id,
+                source_type="test",
+            ),
+        ]
+    )
+
+    db_session.commit()
+
+    response = client.get(
+        (
+            "/api/v1/core/contacts/"
+            f"{contact.id}/720"
+        ),
+        headers={
+            "Authorization":
+                f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 200
+
+    summary = response.json()[
+        "business_summary"
+    ]
+
+    assert (
+        summary["assurance"][
+            "active_actions"
+        ]
+        == 1
+    )
+
+    assert (
+        summary["assurance"][
+            "total_actions"
+        ]
+        == 2
+    )
+
+    assert (
+        summary[
+            "investissement"
+        ][
+            "active_actions"
+        ]
+        == 1
+    )
+
+    assert (
+        summary[
+            "fiduciaire"
+        ][
+            "active_actions"
+        ]
+        == 0
     )

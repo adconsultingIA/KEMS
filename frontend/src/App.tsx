@@ -9,9 +9,13 @@ import { AppShell } from "./components/layout/AppShell"
 import { ClientPortalPage } from "./pages/client/ClientPortalPage"
 import { LoginPage } from "./pages/auth/LoginPage"
 import { ActionCenterPage } from "./pages/internal/ActionCenterPage"
+import { AuditPage } from "./pages/internal/AuditPage"
 import { Client720Page } from "./pages/internal/Client720Page"
+import { Organization720Page } from "./pages/internal/Organization720Page"
 import { ContactsPage } from "./pages/internal/ContactsPage"
+import { OrganizationsPage } from "./pages/internal/OrganizationsPage"
 import { DashboardPage } from "./pages/internal/DashboardPage"
+import { GrowthEnginePage } from "./pages/internal/GrowthEnginePage"
 import { BusinessModulePage } from "./pages/internal/BusinessModulePage"
 import { PlaceholderPage } from "./pages/internal/PlaceholderPage"
 
@@ -76,27 +80,29 @@ export default function App() {
           />
 
           <Route
+            path="audit"
+            element={<AuditPage />}
+          />
+
+          <Route
             path="business/:context/:module"
             element={<BusinessModulePage />}
           />
 
           <Route
             path="organizations"
-            element={
-              <PlaceholderPage
-                title="Organizations"
-                description="Registry et Organization 720°."
-              />
-            }
+            element={<OrganizationsPage />}
+          />
+
+          <Route
+            path="organizations/:organizationId"
+            element={<Organization720Page />}
           />
 
           <Route
             path="growth"
             element={
-              <PlaceholderPage
-                title="Growth Engine"
-                description="Acquisition, qualification et opportunités."
-              />
+              <GrowthEnginePage />
             }
           />
 

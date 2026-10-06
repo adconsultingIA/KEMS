@@ -33,6 +33,7 @@ import {
 } from "react-router-dom"
 import { MetricCard } from "../../components/ui/MetricCard"
 import { StatusBadge } from "../../components/ui/StatusBadge"
+import EntityHandoffSnapshot from "../../components/handoffs/EntityHandoffSnapshot"
 import { useAuth } from "../../hooks/useAuth"
 import {
   listActivitiesRequest,
@@ -1173,9 +1174,18 @@ export function Client720Page() {
                       ? (
                         <>
                           {" — "}
-                          {
-                            client720.organization.name
-                          }
+                          <Link
+                            to={
+                              `/hub/organizations/${
+                                client720.organization.id
+                              }`
+                            }
+                            className="client720-organization-link"
+                          >
+                            {
+                              client720.organization.name
+                            }
+                          </Link>
                         </>
                       )
                       : null
@@ -1294,9 +1304,18 @@ export function Client720Page() {
         ) : null}
       </section>
 
-      <div className="section-tabs">
+      <div
+        className="section-tabs client720-section-tabs"
+        role="tablist"
+        aria-label="Navigation Client 720°"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "overview"
+          }
           className={
             activeSection
               === "overview"
@@ -1314,6 +1333,11 @@ export function Client720Page() {
 
         <button
           type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "relations"
+          }
           className={
             activeSection
               === "relations"
@@ -1329,43 +1353,14 @@ export function Client720Page() {
           Relations
         </button>
 
-        <button
-          type="button"
-          className="tab"
-        >
-          Commercial
-        </button>
 
         <button
           type="button"
-          className="tab"
-        >
-          Assurance
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Investissement
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Fiduciaire
-        </button>
-
-        <button
-          type="button"
-          className="tab"
-        >
-          Documents
-        </button>
-
-        <button
-          type="button"
+          role="tab"
+          aria-selected={
+            activeSection
+            === "history"
+          }
           className={
             activeSection
               === "history"
@@ -1381,6 +1376,126 @@ export function Client720Page() {
           Historique
         </button>
       </div>
+
+
+      {
+        activeSection
+        === "overview"
+        && client720
+          ? (
+            <EntityHandoffSnapshot
+              token={
+                token
+              }
+              contactId={
+                client720.contact.id
+              }
+            />
+          )
+          : null
+      }
+
+
+      <section className="entity720-quick-nav client720-quick-nav">
+        <div>
+          <span className="eyebrow">
+            Client 720°
+          </span>
+
+          <p>
+            {
+              activeSection
+                === "overview"
+                ? (
+                  "Vue transverse du client, de ses données "
+                  + "Core et de son activité KEMS."
+                )
+                : activeSection
+                  === "relations"
+                  ? (
+                    "Organisations, affiliations et relations "
+                    + "connues pour ce client."
+                  )
+                  : (
+                    "Historique transverse des événements "
+                    + "rattachés à ce client."
+                  )
+            }
+          </p>
+        </div>
+
+        <div className="entity720-quick-actions">
+          {
+            activeSection
+            !== "overview"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "overview",
+                    )
+                  }
+                >
+                  <UserRound
+                    size={16}
+                  />
+
+                  Overview
+                </button>
+              )
+              : null
+          }
+
+          {
+            activeSection
+            !== "relations"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "relations",
+                    )
+                  }
+                >
+                  <Building2
+                    size={16}
+                  />
+
+                  Relations
+                </button>
+              )
+              : null
+          }
+
+          {
+            activeSection
+            !== "history"
+              ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    setActiveSection(
+                      "history",
+                    )
+                  }
+                >
+                  <History
+                    size={16}
+                  />
+
+                  Historique
+                </button>
+              )
+              : null
+          }
+        </div>
+      </section>
+
 
       <div
         className={

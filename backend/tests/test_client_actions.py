@@ -1,3 +1,8 @@
+from sqlalchemy import select
+
+from app.models.audit_event import (
+    AuditEvent,
+)
 from app.models.auth_account import (
     AuthAccount,
 )
@@ -174,3 +179,87 @@ def test_internal_user_cannot_use_client_endpoint(
     )
 
     assert response.status_code == 401
+
+
+def test_client_advice_request_is_audited(
+    client,
+    db_session,
+):
+    data = create_client(
+        db_session
+    )
+
+    headers = login_client(
+        client
+    )
+
+    response = client.post(
+        (
+            "/api/v1/client/actions/"
+            "advice-request"
+        ),
+        headers=headers,
+        json={
+            "domain":
+                "Assurance",
+            "subject":
+                "Besoin de conseil",
+            "description":
+                "Je souhaite parler "
+                "à mon conseiller.",
+            "urgency":
+                "normal",
+        },
+    )
+
+    assert (
+        response.status_code
+        == 201
+    )
+
+    payload = response.json()
+
+    event = db_session.scalar(
+        select(
+            AuditEvent
+        ).where(
+            AuditEvent.entity_id
+            == payload["action"]["id"],
+            AuditEvent.action_type
+            == "advice.requested",
+        )
+    )
+
+    assert event is not None
+
+    assert (
+        event.actor_type
+        == "client"
+    )
+
+    assert (
+        event.actor_name
+        == "Jean Dupont"
+    )
+
+    assert (
+        event.actor_contact_id
+        == data["contact"].id
+    )
+
+    assert (
+        event.effective_context
+        == "assurance"
+    )
+
+    assert (
+        event.source_type
+        == "client_360"
+    )
+
+    assert (
+        event.after_data[
+            "reference"
+        ]
+        == payload["reference"]
+    )

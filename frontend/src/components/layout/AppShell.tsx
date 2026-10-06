@@ -1,10 +1,14 @@
 import {
   BadgeCheck,
   ChevronDown,
-  CircleUserRound,
+  Layers3,
   LogOut,
   Search,
 } from "lucide-react"
+import {
+  useState,
+} from "react"
+
 import {
   NavLink,
   Outlet,
@@ -48,6 +52,18 @@ export function AppShell() {
 
   const navigate = useNavigate()
 
+  const [
+    directionMenuOpen,
+    setDirectionMenuOpen,
+  ] =
+    useState(true)
+
+  const [
+    directionServicesOpen,
+    setDirectionServicesOpen,
+  ] =
+    useState(false)
+
   const definition =
     projectionDefinitions[
       activeContext
@@ -57,12 +73,42 @@ export function AppShell() {
     auth?.profile?.full_name
     ?? "KEMS"
 
-  const firstName =
-    fullName.split(" ")[0]
-
   const realUnit =
     auth?.primary_unit?.name
     ?? "Interne"
+
+  const directionServices = [
+    {
+      context:
+        "commercial" as const,
+      definition:
+        projectionDefinitions.commercial,
+    },
+    {
+      context:
+        "assurance" as const,
+      definition:
+        projectionDefinitions.assurance,
+    },
+    {
+      context:
+        "investissement" as const,
+      definition:
+        projectionDefinitions.investissement,
+    },
+    {
+      context:
+        "fiduciaire" as const,
+      definition:
+        projectionDefinitions.fiduciaire,
+    },
+    {
+      context:
+        "technologies" as const,
+      definition:
+        projectionDefinitions.technologies,
+    },
+  ]
 
   async function handleLogout() {
     await logout()
@@ -113,43 +159,93 @@ export function AppShell() {
           </span>
 
           {canSwitchContext ? (
-            <div className="context-select-wrap">
-              <definition.icon
-                size={17}
-              />
+            activeContext
+            === "direction"
+              ? (
+                <button
+                  type="button"
+                  className={
+                    `sidebar-accordion-control direction-accordion-control ${
+                      directionMenuOpen
+                        ? "open"
+                        : ""
+                    }`
+                  }
+                  aria-expanded={
+                    directionMenuOpen
+                  }
+                  onClick={() =>
+                    setDirectionMenuOpen(
+                      (
+                        current,
+                      ) =>
+                        !current,
+                    )
+                  }
+                >
+                  <span className="sidebar-accordion-icon direction-accordion-icon">
+                    <definition.icon
+                      size={18}
+                    />
+                  </span>
 
-              <select
-                aria-label="Changer de contexte KEMS"
-                value={activeContext}
-                onChange={(event) =>
-                  switchContext(
-                    event.target
-                      .value as ProjectionKey,
-                  )
-                }
-              >
-                <option value="direction">
-                  Direction 720°
-                </option>
-                <option value="commercial">
-                  Commercial
-                </option>
-                <option value="assurance">
-                  Assurance
-                </option>
-                <option value="investissement">
-                  Investissement
-                </option>
-                <option value="fiduciaire">
-                  Fiduciaire
-                </option>
-                <option value="technologies">
-                  Technologies
-                </option>
-              </select>
+                  <span className="sidebar-accordion-label">
+                    Direction 720°
+                  </span>
 
-              <ChevronDown size={14} />
-            </div>
+                  <ChevronDown
+                    size={16}
+                    className="sidebar-accordion-chevron"
+                  />
+                </button>
+              )
+              : (
+                <div className="context-select-wrap">
+                  <definition.icon
+                    size={17}
+                  />
+
+                  <select
+                    aria-label="Changer de contexte KEMS"
+                    value={activeContext}
+                    onChange={(event) =>
+                      switchContext(
+                        event.target
+                          .value as ProjectionKey,
+                      )
+                    }
+                  >
+                    <option value="direction">
+                      Direction 720°
+                    </option>
+
+                    <option value="commercial">
+                      Commercial
+                    </option>
+
+                    <option value="assurance">
+                      Assurance
+                    </option>
+
+                    <option value="investissement">
+                      Investissement
+                    </option>
+
+                    <option value="fiduciaire">
+                      Fiduciaire
+                    </option>
+
+                    <option value="technologies">
+                      Technologies
+                    </option>
+                  </select>
+
+                  <ChevronDown
+                    size={14}
+                    className="context-native-chevron"
+                  />
+                </div>
+              )
           ) : (
             <div className="context-static">
               <definition.icon
@@ -163,67 +259,219 @@ export function AppShell() {
           )}
         </div>
 
-        <nav className="sidebar-nav">
-          {definition.nav.map(
-            (item) => {
-              const Icon =
-                item.icon
+        <nav
+          className={
+            `sidebar-nav sidebar-nav-${activeContext}`
+          }
+        >
+          {
+            activeContext
+            === "direction"
+              ? (
+                <div className="direction-sidebar-family">
+                  {
+                    directionMenuOpen
+                      ? (
+                        <div className="direction-menu-content">
+                          {
+                            definition.nav.map(
+                              (
+                                item,
+                              ) => {
+                                const Icon =
+                                  item.icon
 
-              return (
-                <NavLink
-                  key={`${activeContext}-${item.to}-${item.label}`}
-                  to={item.to}
-                  end={
-                    item.to
-                    === "/hub"
-                  }
-                  className={({
-                    isActive,
-                  }) =>
-                    `nav-item ${
-                      isActive
-                        ? "active"
-                        : ""
-                    }`
-                  }
-                >
-                  <Icon size={18} />
+                                return (
+                                  <NavLink
+                                    key={
+                                      `${activeContext}-${item.to}-${item.label}`
+                                    }
+                                    to={
+                                      item.to
+                                    }
+                                    end={
+                                      item.to
+                                      === "/hub"
+                                    }
+                                    className={({
+                                      isActive,
+                                    }) =>
+                                      `nav-item direction-nav-item ${
+                                        isActive
+                                          ? "active"
+                                          : ""
+                                      }`
+                                    }
+                                  >
+                                    <Icon
+                                      size={18}
+                                    />
 
-                  <span>
-                    {item.label}
-                  </span>
-                </NavLink>
+                                    <span>
+                                      {
+                                        item.label
+                                      }
+                                    </span>
+                                  </NavLink>
+                                )
+                              },
+                            )
+                          }
+                        </div>
+                      )
+                      : null
+                  }
+
+
+                  <div className="direction-services-block">
+                    <button
+                      type="button"
+                      className={
+                        `sidebar-accordion-control services-accordion-control ${
+                          directionServicesOpen
+                            ? "open"
+                            : ""
+                        }`
+                      }
+                      aria-expanded={
+                        directionServicesOpen
+                      }
+                      onClick={() =>
+                        setDirectionServicesOpen(
+                          (
+                            current,
+                          ) =>
+                            !current,
+                        )
+                      }
+                    >
+                      <span className="sidebar-accordion-icon services-accordion-icon">
+                        <Layers3
+                          size={18}
+                        />
+                      </span>
+
+                      <span className="sidebar-accordion-label">
+                        Services
+                      </span>
+
+                      <ChevronDown
+                        size={16}
+                        className="sidebar-accordion-chevron"
+                      />
+                    </button>
+
+                    {
+                      directionServicesOpen
+                        ? (
+                          <div className="direction-services-list">
+                            {
+                              directionServices.map(
+                                (
+                                  service,
+                                ) => {
+                                  const ServiceIcon =
+                                    service.definition.icon
+
+                                  return (
+                                    <button
+                                      key={
+                                        service.context
+                                      }
+                                      type="button"
+                                      className={
+                                        `direction-service-item service-${service.context}`
+                                      }
+                                      onClick={() =>
+                                        switchContext(
+                                          service.context,
+                                        )
+                                      }
+                                    >
+                                      <span className="direction-service-icon">
+                                        <ServiceIcon
+                                          size={17}
+                                        />
+                                      </span>
+
+                                      <span>
+                                        {
+                                          service.definition.shortLabel
+                                        }
+                                      </span>
+                                    </button>
+                                  )
+                                },
+                              )
+                            }
+                          </div>
+                        )
+                        : null
+                    }
+                  </div>
+                </div>
               )
-            },
-          )}
+              : (
+                <>
+                  <span
+                    className={
+                      `sidebar-family-label service-family-label service-${activeContext}`
+                    }
+                  >
+                    {
+                      definition.shortLabel
+                    }
+                  </span>
+
+                  {
+                    definition.nav.map(
+                      (
+                        item,
+                      ) => {
+                        const Icon =
+                          item.icon
+
+                        return (
+                          <NavLink
+                            key={
+                              `${activeContext}-${item.to}-${item.label}`
+                            }
+                            to={
+                              item.to
+                            }
+                            end={
+                              item.to
+                              === "/hub"
+                            }
+                            className={({
+                              isActive,
+                            }) =>
+                              `nav-item ${
+                                isActive
+                                  ? "active"
+                                  : ""
+                              }`
+                            }
+                          >
+                            <Icon
+                              size={18}
+                            />
+
+                            <span>
+                              {
+                                item.label
+                              }
+                            </span>
+                          </NavLink>
+                        )
+                      },
+                    )
+                  }
+                </>
+              )
+          }
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="avatar small">
-              {initials(fullName)}
-            </div>
-
-            <div>
-              <strong>
-                {fullName}
-              </strong>
-
-              <span>
-                {realUnit}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="sidebar-logout"
-              aria-label="Se déconnecter"
-              onClick={handleLogout}
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
       </aside>
 
       <main className="main-shell">
@@ -257,18 +505,36 @@ export function AppShell() {
               KEMS Core
             </span>
 
-            <div className="topbar-profile">
-              <CircleUserRound size={19} />
+            <div className="topbar-user-card">
+              <div className="topbar-user-avatar">
+                {
+                  initials(
+                    fullName,
+                  )
+                }
+              </div>
 
-              <div>
+              <div className="topbar-user-identity">
                 <strong>
-                  {firstName}
+                  {fullName}
                 </strong>
 
                 <span>
                   {realUnit}
                 </span>
               </div>
+
+              <button
+                type="button"
+                className="topbar-logout"
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+                onClick={handleLogout}
+              >
+                <LogOut
+                  size={16}
+                />
+              </button>
             </div>
           </div>
         </header>

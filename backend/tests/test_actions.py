@@ -1,3 +1,8 @@
+from sqlalchemy import select
+
+from app.models.audit_event import (
+    AuditEvent,
+)
 from app.models.auth_account import (
     AuthAccount,
 )
@@ -559,4 +564,272 @@ def test_direction_cannot_assign_cross_business_profile(
     assert (
         forbidden.status_code
         == 403
+    )
+
+
+def test_action_creation_is_audited(
+    client,
+    db_session,
+):
+    direction = create_internal_user(
+        db_session,
+        full_name="Euloge Santos",
+        email="direction.audit-create@kems.test",
+        unit_name="Direction",
+        unit_code="DIRECTION",
+        role_code="direction-audit-create",
+    )
+
+    headers = login(
+        client,
+        direction["profile"].email,
+    )
+
+    response = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title":
+                "Préparer dossier Assurance",
+            "context":
+                "assurance",
+            "priority":
+                "high",
+        },
+    )
+
+    assert (
+        response.status_code
+        == 201
+    )
+
+    action_id = (
+        response.json()["id"]
+    )
+
+    event = db_session.scalar(
+        select(
+            AuditEvent
+        ).where(
+            AuditEvent.entity_id
+            == action_id,
+            AuditEvent.action_type
+            == "action.created",
+        )
+    )
+
+    assert event is not None
+
+    assert (
+        event.actor_name
+        == "Euloge Santos"
+    )
+
+    assert (
+        event.actor_unit_name
+        == "Direction"
+    )
+
+    assert (
+        event.effective_context
+        == "assurance"
+    )
+
+    assert (
+        event.after_data[
+            "priority"
+        ]
+        == "high"
+    )
+
+
+def test_action_status_and_assignment_are_audited(
+    client,
+    db_session,
+):
+    direction = create_internal_user(
+        db_session,
+        full_name="Direction Audit",
+        email="direction.audit-update@kems.test",
+        unit_name="Direction",
+        unit_code="DIRECTION",
+        role_code="direction-audit-update",
+    )
+
+    tech = create_internal_user(
+        db_session,
+        full_name="Tech Audit",
+        email="tech.audit-update@kems.test",
+        unit_name="Technologies",
+        unit_code="TECHNOLOGIES",
+        role_code="tech-audit-update",
+    )
+
+    headers = login(
+        client,
+        direction["profile"].email,
+    )
+
+    created = client.post(
+        "/api/v1/core/actions",
+        headers=headers,
+        json={
+            "title":
+                "Traiter incident",
+            "context":
+                "technologies",
+        },
+    )
+
+    assert (
+        created.status_code
+        == 201
+    )
+
+    action_id = (
+        created.json()["id"]
+    )
+
+    assigned = client.patch(
+        (
+            "/api/v1/core/actions/"
+            f"{action_id}"
+        ),
+        headers=headers,
+        json={
+            "owner_profile_id":
+                tech["profile"].id,
+        },
+    )
+
+    assert (
+        assigned.status_code
+        == 200
+    )
+
+    started = client.patch(
+        (
+            "/api/v1/core/actions/"
+            f"{action_id}"
+        ),
+        headers=headers,
+        json={
+            "status":
+                "in_progress",
+        },
+    )
+
+    assert (
+        started.status_code
+        == 200
+    )
+
+    completed = client.patch(
+        (
+            "/api/v1/core/actions/"
+            f"{action_id}"
+        ),
+        headers=headers,
+        json={
+            "status":
+                "done",
+        },
+    )
+
+    assert (
+        completed.status_code
+        == 200
+    )
+
+    events = db_session.scalars(
+        select(
+            AuditEvent
+        ).where(
+            AuditEvent.entity_id
+            == action_id
+        ).order_by(
+            AuditEvent.created_at.asc()
+        )
+    ).all()
+
+    event_types = [
+        event.action_type
+        for event in events
+    ]
+
+    assert (
+        "action.created"
+        in event_types
+    )
+
+    assert (
+        "action.assigned"
+        in event_types
+    )
+
+    assert (
+        "action.started"
+        in event_types
+    )
+
+    assert (
+        "action.completed"
+        in event_types
+    )
+
+    assignment_event = next(
+        event
+        for event in events
+        if event.action_type
+        == "action.assigned"
+    )
+
+    assert (
+        assignment_event
+        .before_data[
+            "owner_profile_id"
+        ]
+        is None
+    )
+
+    assert (
+        assignment_event
+        .after_data[
+            "owner_profile_id"
+        ]
+        == tech["profile"].id
+    )
+
+    completion_event = next(
+        event
+        for event in events
+        if event.action_type
+        == "action.completed"
+    )
+
+    assert (
+        completion_event
+        .before_data["status"]
+        == "in_progress"
+    )
+
+    assert (
+        completion_event
+        .after_data["status"]
+        == "done"
+    )
+
+    # Critical governance rule:
+    # actor remains Direction while the effective
+    # business context remains Technologies.
+    assert (
+        completion_event
+        .actor_unit_name
+        == "Direction"
+    )
+
+    assert (
+        completion_event
+        .effective_context
+        == "technologies"
     )

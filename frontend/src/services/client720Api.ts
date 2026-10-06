@@ -96,6 +96,40 @@ export type Client720Relation = {
 }
 
 
+export type Client720CommercialSummary = {
+  leads: number
+  qualified_leads: number
+
+  opportunities: number
+  active_opportunities: number
+
+  pipeline_by_currency: Record<
+    string,
+    number
+  >
+}
+
+
+export type Client720BusinessContextSummary = {
+  context: string
+
+  active_actions: number
+  total_actions: number
+
+  module_connected: boolean
+}
+
+
+export type Client720BusinessSummary = {
+  commercial: Client720CommercialSummary
+
+  assurance: Client720BusinessContextSummary
+  investissement: Client720BusinessContextSummary
+  fiduciaire: Client720BusinessContextSummary
+  technologies: Client720BusinessContextSummary
+}
+
+
 export type Client720AffiliationSummary = {
   total_relations: number
   active_relations: number
@@ -141,6 +175,7 @@ export type Client720Projection = {
   organization: Client720Organization | null
   relations: Client720Relation[]
   affiliation_summary: Client720AffiliationSummary
+  business_summary: Client720BusinessSummary
 
   data_quality: Client720DataQuality
   provenance: Client720Provenance

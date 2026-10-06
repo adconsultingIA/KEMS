@@ -3,6 +3,12 @@ import {
   ShieldAlert,
 } from "lucide-react"
 import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
+
+import {
   Link,
   useNavigate,
 } from "react-router-dom"
@@ -19,6 +25,60 @@ import { useAuth } from "../../hooks/useAuth"
 import {
   useProjection,
 } from "../../hooks/useProjection"
+
+import {
+  listHandoffsRequest,
+  listOpportunitiesRequest,
+} from "../../services/growthApi"
+
+import type {
+  GrowthOpportunity,
+  OpportunityHandoff,
+} from "../../services/growthApi"
+
+function normalizeBusinessCode(
+  value: string,
+) {
+  return value
+    .trim()
+    .toUpperCase()
+    .replaceAll("É", "E")
+    .replaceAll("È", "E")
+    .replaceAll("À", "A")
+    .replaceAll(" ", "_")
+}
+
+
+function dashboardMoney(
+  value: number | null,
+  currency: string,
+) {
+  if (
+    value === null
+  ) {
+    return "—"
+  }
+
+  try {
+    return new Intl.NumberFormat(
+      "fr-CH",
+      {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+      },
+    ).format(
+      value,
+    )
+  } catch {
+    return `${
+      value.toLocaleString(
+        "fr-CH",
+      )
+    } ${currency}`
+  }
+}
+
 
 const contextPriorities:
   Record<
@@ -171,6 +231,7 @@ const contextPriorities:
 export function DashboardPage() {
   const {
     auth,
+    token,
   } = useAuth()
 
   const {
@@ -178,6 +239,28 @@ export function DashboardPage() {
     canSwitchContext,
     setActiveContext,
   } = useProjection()
+
+  const [
+    businessHandoffs,
+    setBusinessHandoffs,
+  ] =
+    useState<
+      OpportunityHandoff[]
+    >([])
+
+  const [
+    businessOpportunities,
+    setBusinessOpportunities,
+  ] =
+    useState<
+      GrowthOpportunity[]
+    >([])
+
+  const [
+    businessInboxLoading,
+    setBusinessInboxLoading,
+  ] =
+    useState(false)
 
   const navigate = useNavigate()
 
@@ -201,6 +284,159 @@ export function DashboardPage() {
     setActiveContext(context)
     navigate("/hub")
   }
+
+  useEffect(
+    () => {
+      if (
+        activeContext
+        === "direction"
+        || activeContext
+          === "commercial"
+      ) {
+        return
+      }
+
+      let cancelled =
+        false
+
+      async function loadBusinessInbox() {
+        setBusinessInboxLoading(
+          true,
+        )
+
+        try {
+          const [
+            handoffData,
+            opportunityData,
+          ] =
+            await Promise.all([
+              listHandoffsRequest(
+                token,
+              ),
+              listOpportunitiesRequest(
+                token,
+              ),
+            ])
+
+          if (
+            cancelled
+          ) {
+            return
+          }
+
+          setBusinessHandoffs(
+            handoffData,
+          )
+
+          setBusinessOpportunities(
+            opportunityData,
+          )
+        } catch {
+          if (
+            !cancelled
+          ) {
+            setBusinessHandoffs(
+              [],
+            )
+
+            setBusinessOpportunities(
+              [],
+            )
+          }
+        } finally {
+          if (
+            !cancelled
+          ) {
+            setBusinessInboxLoading(
+              false,
+            )
+          }
+        }
+      }
+
+      void loadBusinessInbox()
+
+      return () => {
+        cancelled =
+          true
+      }
+    },
+    [
+      activeContext,
+      token,
+    ],
+  )
+
+
+  const incomingOpportunities =
+    useMemo(
+      () => {
+        if (
+          activeContext
+          === "direction"
+          || activeContext
+            === "commercial"
+        ) {
+          return []
+        }
+
+        const expectedCode =
+          normalizeBusinessCode(
+            activeContext,
+          )
+
+        return businessHandoffs
+          .filter(
+            handoff =>
+              normalizeBusinessCode(
+                handoff
+                  .target_unit
+                  .code,
+              )
+              === expectedCode,
+          )
+          .filter(
+            handoff =>
+              handoff.status
+              === "handed_off",
+          )
+          .map(
+            handoff => ({
+              handoff,
+              opportunity:
+                businessOpportunities
+                  .find(
+                    opportunity =>
+                      opportunity.id
+                      === handoff
+                        .opportunity_id,
+                  )
+                ?? null,
+            }),
+          )
+          .sort(
+            (
+              left,
+              right,
+            ) =>
+              new Date(
+                right.handoff
+                  .handed_off_at,
+              ).getTime()
+              - new Date(
+                left.handoff
+                  .handed_off_at,
+              ).getTime(),
+          )
+      },
+      [
+        activeContext,
+        businessHandoffs,
+        businessOpportunities,
+      ],
+    )
+
+
 
   if (
     activeContext === "direction"
@@ -471,6 +707,192 @@ export function DashboardPage() {
           ),
         )}
       </section>
+
+      {
+        activeContext
+          !== "commercial"
+        ? (
+          <section
+            className={
+              `panel business-dashboard-inbox business-dashboard-inbox-${activeContext}`
+            }
+          >
+            <div className="panel-heading">
+              <div>
+                <span className="eyebrow">
+                  Réception métier
+                </span>
+
+                <h2>
+                  Opportunités entrantes
+                </h2>
+              </div>
+
+              <Link
+                to={
+                  `/hub/${
+                    activeContext
+                  }/opportunities`
+                }
+                className="text-link"
+              >
+                Tout voir
+                <ArrowRight
+                  size={16}
+                />
+              </Link>
+            </div>
+
+            <div className="business-dashboard-inbox-summary">
+              <div className="business-dashboard-inbox-count">
+                <strong>
+                  {
+                    businessInboxLoading
+                      ? "…"
+                      : incomingOpportunities
+                          .length
+                  }
+                </strong>
+
+                <span>
+                  À prendre en charge
+                </span>
+              </div>
+
+              <div className="business-dashboard-inbox-list">
+                {
+                  businessInboxLoading
+                  ? (
+                    <div className="business-dashboard-inbox-loading">
+                      Chargement des opportunités entrantes…
+                    </div>
+                  )
+                  : null
+                }
+
+                {
+                  !businessInboxLoading
+                  && incomingOpportunities
+                    .slice(
+                      0,
+                      3,
+                    )
+                    .map(
+                      (
+                        item,
+                      ) => (
+                        <Link
+                          key={
+                            item.handoff.id
+                          }
+                          to={
+                            `/hub/${
+                              activeContext
+                            }/opportunities`
+                          }
+                          className="business-dashboard-inbox-item"
+                        >
+                          <div>
+                            <div className="business-dashboard-inbox-title">
+                              <strong>
+                                {
+                                  item.opportunity
+                                    ?.name
+                                  ?? "Nouvelle opportunité"
+                                }
+                              </strong>
+
+                              <span className="business-dashboard-new-badge">
+                                Nouveau
+                              </span>
+                            </div>
+
+                            <span>
+                              Transmise depuis
+                              {" "}
+                              le Growth Engine
+                            </span>
+                          </div>
+
+                          <div className="business-dashboard-inbox-value">
+                            {
+                              item.opportunity
+                              ? dashboardMoney(
+                                  item.opportunity
+                                    .estimated_value,
+                                  item.opportunity
+                                    .currency,
+                                )
+                              : "—"
+                            }
+
+                            <ArrowRight
+                              size={15}
+                            />
+                          </div>
+                        </Link>
+                      ),
+                    )
+                }
+
+                {
+                  !businessInboxLoading
+                  && incomingOpportunities
+                    .length > 3
+                  ? (
+                    <Link
+                      to={
+                        `/hub/${
+                          activeContext
+                        }/opportunities`
+                      }
+                      className="business-dashboard-inbox-more"
+                    >
+                      +{
+                        incomingOpportunities
+                          .length - 3
+                      }
+                      {" autre"}
+                      {
+                        incomingOpportunities
+                          .length - 3 > 1
+                          ? "s"
+                          : ""
+                      }
+                      {" opportunité"}
+                      {
+                        incomingOpportunities
+                          .length - 3 > 1
+                          ? "s"
+                          : ""
+                      }
+                      <ArrowRight
+                        size={14}
+                      />
+                    </Link>
+                  )
+                  : null
+                }
+
+                {
+                  !businessInboxLoading
+                  && !incomingOpportunities
+                    .length
+                  ? (
+                    <div className="business-dashboard-inbox-empty">
+                      Aucune nouvelle opportunité
+                      à prendre en charge.
+                    </div>
+                  )
+                  : null
+                }
+              </div>
+            </div>
+          </section>
+        )
+        : null
+      }
+
 
       <section className="dashboard-grid">
         <div className="panel">

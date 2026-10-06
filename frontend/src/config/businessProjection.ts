@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   LineChart,
   Package,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -84,11 +85,16 @@ export const projectionDefinitions:
           icon: Users,
         },
         {
-          label: "Organizations",
+          label: "Organisations",
           to: "/hub/organizations",
           icon: Building2,
         },
         actionCenter,
+        {
+          label: "Activité / Audit",
+          to: "/hub/audit",
+          icon: ScrollText,
+        },
         {
           label: "Administration",
           to: "/hub/settings",
@@ -102,7 +108,7 @@ export const projectionDefinitions:
           hint: "+4,8% ce mois",
         },
         {
-          label: "Organizations",
+          label: "Organisations",
           value: "326",
           hint: "94% qualifiées",
         },
@@ -141,6 +147,11 @@ export const projectionDefinitions:
           label: "Clients",
           to: "/hub/contacts",
           icon: Users,
+        },
+        {
+          label: "Organisations",
+          to: "/hub/organizations",
+          icon: Building2,
         },
         {
           label: "Prospects",
@@ -205,6 +216,11 @@ export const projectionDefinitions:
           label: "Clients",
           to: "/hub/contacts",
           icon: Users,
+        },
+        {
+          label: "Organisations",
+          to: "/hub/organizations",
+          icon: Building2,
         },
         {
           label: "Contrats",
@@ -281,6 +297,11 @@ export const projectionDefinitions:
           icon: Users,
         },
         {
+          label: "Organisations",
+          to: "/hub/organizations",
+          icon: Building2,
+        },
+        {
           label: "Portefeuilles",
           to: "/hub/business/investissement/portfolios",
           icon: Activity,
@@ -350,6 +371,11 @@ export const projectionDefinitions:
           icon: Users,
         },
         {
+          label: "Organisations",
+          to: "/hub/organizations",
+          icon: Building2,
+        },
+        {
           label: "Mandats",
           to: "/hub/business/fiduciaire/mandates",
           icon: Briefcase,
@@ -417,6 +443,11 @@ export const projectionDefinitions:
           label: "Clients",
           to: "/hub/contacts",
           icon: Users,
+        },
+        {
+          label: "Organisations",
+          to: "/hub/organizations",
+          icon: Building2,
         },
         {
           label: "Opportunités",

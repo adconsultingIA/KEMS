@@ -1,4 +1,5 @@
 from app.models.activity import Activity
+from app.models.audit_event import AuditEvent
 from app.models.action import Action
 from app.models.auth_account import AuthAccount
 from app.models.auth_session import AuthSession
@@ -10,6 +11,7 @@ from app.models.contact_organization import ContactOrganization
 from app.models.ingestion_record import IngestionRecord
 from app.models.lead import Lead
 from app.models.opportunity import Opportunity
+from app.models.opportunity_handoff import OpportunityHandoff
 from app.models.organizational_unit import OrganizationalUnit
 from app.models.team import Team
 from app.models.role import Role
@@ -18,6 +20,7 @@ from app.models.user_membership import UserMembership
 
 __all__ = [
     "Activity",
+    "AuditEvent",
     "Action",
     "AuthAccount",
     "AuthSession",
@@ -29,6 +32,7 @@ __all__ = [
     "IngestionRecord",
     "Lead",
     "Opportunity",
+    "OpportunityHandoff",
     "OrganizationalUnit",
     "Team",
     "Role",

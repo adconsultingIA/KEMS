@@ -17,6 +17,62 @@ class Lead(Base):
         default=lambda: str(uuid.uuid4()),
     )
 
+    # Identité prospect autonome
+    #
+    # Un lead n'est pas encore obligatoirement
+    # un Contact ou une Organisation KEMS Core.
+    #
+    # lead_type:
+    # - b2c = personne
+    # - b2b = entreprise / organisation
+    #
+    lead_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="b2c",
+        index=True,
+    )
+
+    first_name: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    last_name: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    company_name: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    phone: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    city: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    country: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
     # Relations avec le socle KEMS Hub
     organization_id: Mapped[str | None] = mapped_column(
         String,
@@ -112,7 +168,27 @@ class Lead(Base):
         nullable=True,
     )
 
+    contacted_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    qualification_started_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     qualified_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    disqualified_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    core_converted_at = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

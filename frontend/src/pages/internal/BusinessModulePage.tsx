@@ -12,6 +12,8 @@ import {
 import type {
   ProjectionKey,
 } from "../../context/projection-context"
+import { useAuth } from "../../hooks/useAuth"
+import BusinessOpportunitiesInbox from "../../components/business/BusinessOpportunitiesInbox"
 
 function humanize(
   value: string,
@@ -53,6 +55,10 @@ export function BusinessModulePage() {
     module,
   } = useParams()
 
+  const {
+    token,
+  } = useAuth()
+
   const key =
     context as ProjectionKey
 
@@ -63,6 +69,29 @@ export function BusinessModulePage() {
     humanize(
       module ?? "module",
     )
+
+  if (
+    definition
+    && module
+      === "opportunities"
+    && key
+      !== "commercial"
+  ) {
+    return (
+      <BusinessOpportunitiesInbox
+        contextKey={
+          key
+        }
+        contextLabel={
+          definition.shortLabel
+        }
+        token={
+          token
+        }
+      />
+    )
+  }
+
 
   if (!definition) {
     return (

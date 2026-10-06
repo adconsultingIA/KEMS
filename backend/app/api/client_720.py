@@ -10,7 +10,10 @@ from app.core.database import get_db
 from app.dependencies.auth import (
     get_current_auth_context,
 )
+from app.models.action import Action
 from app.models.contact import Contact
+from app.models.lead import Lead
+from app.models.opportunity import Opportunity
 from app.models.contact_organization import (
     ContactOrganization,
 )
@@ -18,6 +21,9 @@ from app.models.organization import Organization
 from app.schemas.auth import AuthContextResponse
 from app.schemas.client_720 import (
     Client720AffiliationSummary,
+    Client720BusinessContextSummary,
+    Client720BusinessSummary,
+    Client720CommercialSummary,
     Client720DataQuality,
     Client720Projection,
     Client720Provenance,
@@ -223,6 +229,173 @@ def build_affiliation_summary(
     )
 
 
+def build_commercial_summary(
+    db: Session,
+    contact: Contact,
+) -> Client720CommercialSummary:
+    leads = db.scalars(
+        select(
+            Lead
+        ).where(
+            Lead.contact_id
+            == contact.id
+        )
+    ).all()
+
+    opportunities = db.scalars(
+        select(
+            Opportunity
+        ).where(
+            Opportunity.primary_contact_id
+            == contact.id
+        )
+    ).all()
+
+    active_opportunities = [
+        opportunity
+        for opportunity in opportunities
+        if opportunity.stage
+        not in {
+            "won",
+            "lost",
+            "cancelled",
+        }
+    ]
+
+    pipeline_by_currency: dict[
+        str,
+        float,
+    ] = {}
+
+    for opportunity in active_opportunities:
+        if (
+            opportunity.estimated_value
+            is None
+        ):
+            continue
+
+        currency = (
+            opportunity.currency
+            or "CHF"
+        )
+
+        pipeline_by_currency[
+            currency
+        ] = (
+            pipeline_by_currency.get(
+                currency,
+                0.0,
+            )
+            + float(
+                opportunity.estimated_value
+            )
+        )
+
+    return Client720CommercialSummary(
+        leads=len(
+            leads
+        ),
+        qualified_leads=sum(
+            1
+            for lead in leads
+            if (
+                lead.status
+                == "qualified"
+            )
+        ),
+        opportunities=len(
+            opportunities
+        ),
+        active_opportunities=len(
+            active_opportunities
+        ),
+        pipeline_by_currency=(
+            pipeline_by_currency
+        ),
+    )
+
+
+def build_context_summary(
+    db: Session,
+    contact: Contact,
+    context: str,
+) -> Client720BusinessContextSummary:
+    actions = db.scalars(
+        select(
+            Action
+        ).where(
+            Action.contact_id
+            == contact.id,
+            Action.context
+            == context,
+        )
+    ).all()
+
+    active_statuses = {
+        "todo",
+        "in_progress",
+        "blocked",
+    }
+
+    return Client720BusinessContextSummary(
+        context=context,
+        active_actions=sum(
+            1
+            for action in actions
+            if (
+                action.status
+                in active_statuses
+            )
+        ),
+        total_actions=len(
+            actions
+        ),
+        module_connected=False,
+    )
+
+
+def build_business_summary(
+    db: Session,
+    contact: Contact,
+) -> Client720BusinessSummary:
+    return Client720BusinessSummary(
+        commercial=(
+            build_commercial_summary(
+                db,
+                contact,
+            )
+        ),
+        assurance=(
+            build_context_summary(
+                db,
+                contact,
+                "assurance",
+            )
+        ),
+        investissement=(
+            build_context_summary(
+                db,
+                contact,
+                "investissement",
+            )
+        ),
+        fiduciaire=(
+            build_context_summary(
+                db,
+                contact,
+                "fiduciaire",
+            )
+        ),
+        technologies=(
+            build_context_summary(
+                db,
+                contact,
+                "technologies",
+            )
+        ),
+    )
+
+
 def build_data_quality(
     contact: Contact,
     organization: (
@@ -383,6 +556,12 @@ def get_client_720_projection(
         affiliation_summary=(
             build_affiliation_summary(
                 relations
+            )
+        ),
+        business_summary=(
+            build_business_summary(
+                db,
+                contact,
             )
         ),
         data_quality=(

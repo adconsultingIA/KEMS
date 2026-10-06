@@ -35,6 +35,9 @@ from app.services.activity_service import (
     record_action_created_activity,
     record_action_lifecycle_activities,
 )
+from app.services.audit_service import (
+    record_audit_event,
+)
 from app.services.auth_service import (
     projection_from_unit,
 )
@@ -332,6 +335,353 @@ def validate_assignment_scope(
             )
 
 
+def serialize_audit_value(
+    value,
+):
+    if isinstance(
+        value,
+        datetime,
+    ):
+        return value.isoformat()
+
+    return value
+
+
+def action_audit_snapshot(
+    action: Action,
+) -> dict:
+    """
+    Stable JSON-safe snapshot used only for governance.
+    """
+
+    fields = (
+        "title",
+        "description",
+        "status",
+        "priority",
+        "context",
+        "owner_profile_id",
+        "unit_id",
+        "contact_id",
+        "organization_id",
+        "source_type",
+        "source_entity_type",
+        "source_entity_id",
+        "due_at",
+        "completed_at",
+    )
+
+    return {
+        field:
+            serialize_audit_value(
+                getattr(
+                    action,
+                    field,
+                )
+            )
+        for field in fields
+    }
+
+
+def record_action_update_audit(
+    db: Session,
+    *,
+    auth: AuthContextResponse,
+    action: Action,
+    before_data: dict,
+    changed_fields: set[str],
+):
+    after_data = (
+        action_audit_snapshot(
+            action
+        )
+    )
+
+    previous_owner = (
+        before_data.get(
+            "owner_profile_id"
+        )
+    )
+
+    current_owner = (
+        after_data.get(
+            "owner_profile_id"
+        )
+    )
+
+    previous_status = (
+        before_data.get(
+            "status"
+        )
+    )
+
+    current_status = (
+        after_data.get(
+            "status"
+        )
+    )
+
+    recorded_specific_event = False
+
+    # --------------------------------------------------------
+    # Assignment lifecycle
+    # --------------------------------------------------------
+
+    if (
+        "owner_profile_id"
+        in changed_fields
+        and previous_owner
+        != current_owner
+    ):
+        if (
+            previous_owner is None
+            and current_owner is not None
+        ):
+            action_type = (
+                "action.assigned"
+            )
+
+        elif (
+            previous_owner is not None
+            and current_owner is None
+        ):
+            action_type = (
+                "action.unassigned"
+            )
+
+        else:
+            action_type = (
+                "action.reassigned"
+            )
+
+        record_audit_event(
+            db,
+            auth=auth,
+            effective_context=(
+                action.context
+            ),
+            action_type=(
+                action_type
+            ),
+            entity_type="action",
+            entity_id=action.id,
+            action_id=action.id,
+            contact_id=(
+                action.contact_id
+            ),
+            organization_id=(
+                action.organization_id
+            ),
+            source_type="action_center",
+            source_entity_type=(
+                action.source_entity_type
+            ),
+            source_entity_id=(
+                action.source_entity_id
+            ),
+            before_data={
+                "owner_profile_id":
+                    previous_owner,
+            },
+            after_data={
+                "owner_profile_id":
+                    current_owner,
+            },
+        )
+
+        recorded_specific_event = True
+
+    # --------------------------------------------------------
+    # Status lifecycle
+    # --------------------------------------------------------
+
+    if (
+        "status"
+        in changed_fields
+        and previous_status
+        != current_status
+    ):
+        if (
+            current_status
+            == "in_progress"
+        ):
+            if (
+                previous_status
+                == "done"
+            ):
+                action_type = (
+                    "action.reopened"
+                )
+            else:
+                action_type = (
+                    "action.started"
+                )
+
+        elif (
+            current_status
+            == "blocked"
+        ):
+            action_type = (
+                "action.blocked"
+            )
+
+        elif (
+            current_status
+            == "done"
+        ):
+            action_type = (
+                "action.completed"
+            )
+
+        elif (
+            current_status
+            == "cancelled"
+        ):
+            action_type = (
+                "action.cancelled"
+            )
+
+        elif (
+            previous_status
+            == "done"
+        ):
+            action_type = (
+                "action.reopened"
+            )
+
+        else:
+            action_type = (
+                "action.status_changed"
+            )
+
+        record_audit_event(
+            db,
+            auth=auth,
+            effective_context=(
+                action.context
+            ),
+            action_type=(
+                action_type
+            ),
+            entity_type="action",
+            entity_id=action.id,
+            action_id=action.id,
+            contact_id=(
+                action.contact_id
+            ),
+            organization_id=(
+                action.organization_id
+            ),
+            source_type="action_center",
+            source_entity_type=(
+                action.source_entity_type
+            ),
+            source_entity_id=(
+                action.source_entity_id
+            ),
+            before_data={
+                "status":
+                    previous_status,
+            },
+            after_data={
+                "status":
+                    current_status,
+            },
+        )
+
+        recorded_specific_event = True
+
+    # --------------------------------------------------------
+    # Other business fields
+    # --------------------------------------------------------
+
+    other_fields = (
+        changed_fields
+        - {
+            "owner_profile_id",
+            "status",
+        }
+    )
+
+    if other_fields:
+        record_audit_event(
+            db,
+            auth=auth,
+            effective_context=(
+                action.context
+            ),
+            action_type=(
+                "action.updated"
+            ),
+            entity_type="action",
+            entity_id=action.id,
+            action_id=action.id,
+            contact_id=(
+                action.contact_id
+            ),
+            organization_id=(
+                action.organization_id
+            ),
+            source_type="action_center",
+            source_entity_type=(
+                action.source_entity_type
+            ),
+            source_entity_id=(
+                action.source_entity_id
+            ),
+            before_data={
+                key:
+                    before_data.get(
+                        key
+                    )
+                for key
+                in sorted(
+                    other_fields
+                )
+            },
+            after_data={
+                key:
+                    after_data.get(
+                        key
+                    )
+                for key
+                in sorted(
+                    other_fields
+                )
+            },
+        )
+
+        recorded_specific_event = True
+
+    # Defensive fallback.
+    if (
+        changed_fields
+        and not recorded_specific_event
+    ):
+        record_audit_event(
+            db,
+            auth=auth,
+            effective_context=(
+                action.context
+            ),
+            action_type=(
+                "action.updated"
+            ),
+            entity_type="action",
+            entity_id=action.id,
+            action_id=action.id,
+            contact_id=(
+                action.contact_id
+            ),
+            organization_id=(
+                action.organization_id
+            ),
+            source_type="action_center",
+            before_data=before_data,
+            after_data=after_data,
+        )
+
+
 @router.post(
     "",
     response_model=ActionResponse,
@@ -434,6 +784,39 @@ def create_action(
         actor_type="internal",
         actor_profile_id=(
             auth.profile.id
+        ),
+    )
+
+    record_audit_event(
+        db,
+        auth=auth,
+        effective_context=(
+            action.context
+        ),
+        action_type=(
+            "action.created"
+        ),
+        entity_type="action",
+        entity_id=action.id,
+        action_id=action.id,
+        contact_id=(
+            action.contact_id
+        ),
+        organization_id=(
+            action.organization_id
+        ),
+        source_type="action_center",
+        source_entity_type=(
+            action.source_entity_type
+        ),
+        source_entity_id=(
+            action.source_entity_id
+        ),
+        before_data=None,
+        after_data=(
+            action_audit_snapshot(
+                action
+            )
         ),
     )
 
@@ -676,6 +1059,16 @@ def update_action(
         exclude_unset=True
     )
 
+    before_audit_data = (
+        action_audit_snapshot(
+            action
+        )
+    )
+
+    changed_fields = set(
+        data.keys()
+    )
+
     previous_owner_profile_id = (
         action.owner_profile_id
     )
@@ -799,6 +1192,18 @@ def update_action(
         ),
         actor_profile_id=(
             auth.profile.id
+        ),
+    )
+
+    record_action_update_audit(
+        db,
+        auth=auth,
+        action=action,
+        before_data=(
+            before_audit_data
+        ),
+        changed_fields=(
+            changed_fields
         ),
     )
 
